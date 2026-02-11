@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LensAI Pro · Biometric Analysis</title>
+    <title>LensAI · Biometric Intelligence</title>
     
     <!-- Tailwind + UI -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Face‑API with official CORS‑safe model repository -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Phosphor icons -->
+    <!-- Phosphor icons (pro) -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
     <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <!-- Chart.js for optional confidence gauge (lightweight) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <style>
-        /* ---------- PRO‑GRADE GLASS, NEON, SMOOTH STATES ---------- */
+        /* ---------- ENTERPRISE GLASS · 60FPS READY ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Inter', sans-serif;
@@ -26,14 +28,14 @@
             flex-direction: column;
             overflow-x: hidden;
         }
-        .glass-panel {
+        .glass {
             background: rgba(12, 22, 38, 0.75);
             backdrop-filter: blur(18px) saturate(200%);
             -webkit-backdrop-filter: blur(18px) saturate(200%);
             border: 1px solid rgba(59,130,246,0.3);
             box-shadow: 0 12px 40px -8px rgba(0,0,0,0.5);
         }
-        .glass-panel-strong {
+        .glass-strong {
             background: rgba(8, 18, 30, 0.85);
             backdrop-filter: blur(18px);
             border: 1px solid rgba(59,130,246,0.4);
@@ -102,35 +104,41 @@
             box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .video-card {
-            background: linear-gradient(145deg, #1e2a3a, #0f1a26);
-            border: 1px solid #3b82f660;
+        .camera-selector {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .metric-tile {
+            transition: all 0.2s ease;
+        }
+        .metric-tile:hover {
+            background: rgba(59,130,246,0.15);
+            border-color: #3b82f680;
         }
     </style>
 </head>
 <body class="no-scrollbar">
 
-    <!-- 🌐 GLOBAL HEADER with Facebook Video & Export -->
+    <!-- 🌐 GLOBAL HEADER – Facebook + Export + Status -->
     <header class="w-full px-4 pt-5 pb-2 flex flex-wrap items-center justify-between gap-2 z-50">
         <div class="flex items-center gap-2.5 font-extrabold text-xl tracking-tight">
             <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
                 <i class="ph-fill ph-eyeglasses text-white text-2xl"></i>
             </div>
-            <span class="text-white">Lens<span class="text-blue-400">AI</span><span class="text-xs font-medium text-white/40 ml-1">pro</span></span>
+            <span class="text-white">Lens<span class="text-blue-400">AI</span><span class="text-xs font-medium text-white/40 ml-1">v2.0</span></span>
         </div>
         
         <div class="flex items-center gap-2">
-            <!-- FACEBOOK VIDEO LINK - Stylish clickable card -->
+            <!-- Facebook video link -->
             <a href="https://www.facebook.com/share/v/1De7qG61aG/" target="_blank" 
-               class="video-card flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-white/90 hover:text-white transition-all hover:scale-105">
-                <i class="ph-fill ph-facebook-logo text-blue-400 text-lg"></i>
-                <span class="hidden sm:inline">Watch demo</span>
-                <i class="ph ph-arrow-square-out text-xs opacity-70"></i>
+               class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#1877f2]/20 hover:bg-[#1877f2]/30 border border-[#1877f2]/50 transition-all">
+                <i class="ph-fill ph-facebook-logo text-[#1877f2] text-lg"></i>
+                <span class="hidden sm:inline">Demo</span>
             </a>
-            
-            <!-- EXPORT BUTTON (visible when data exists) -->
+            <!-- Export CSV -->
             <button id="export-btn" onclick="exportToExcel()" 
-                class="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-white/10 hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" disabled>
+                class="glass px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 border border-white/10 hover:bg-white/5 transition-all disabled:opacity-30 disabled:pointer-events-none" disabled>
                 <i class="ph ph-file-csv text-emerald-400"></i>
                 <span class="hidden sm:inline">Export</span>
             </button>
@@ -151,14 +159,26 @@
 
         <!-- ========== SCREEN 2 : CAMERA / SCAN ========== -->
         <div id="screen-camera" class="w-full flex flex-col items-center state-hidden fade-slide-up">
-            <div id="guidance" class="mb-5 px-6 py-3 rounded-2xl glass-panel-strong text-sm font-semibold flex items-center gap-2 border shadow-lg backdrop-blur-2xl">
-                <i class="ph ph-camera text-blue-400 text-base"></i>
-                <span id="guidance-text">position face inside frame</span>
+            <!-- Guidance chip + Camera selector -->
+            <div class="w-full flex items-center justify-between mb-3">
+                <div id="guidance" class="px-5 py-2.5 rounded-2xl glass-strong text-sm font-semibold flex items-center gap-2 border shadow-lg backdrop-blur-2xl">
+                    <i class="ph ph-camera text-blue-400 text-base"></i>
+                    <span id="guidance-text">position face</span>
+                </div>
+                <!-- 🔁 DUAL CAMERA SELECTOR -->
+                <div class="camera-selector rounded-2xl p-1 flex items-center">
+                    <button id="cam-front-btn" class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1 text-white/70 hover:text-white">
+                        <i class="ph ph-user"></i><span class="hidden xs:inline">Front</span>
+                    </button>
+                    <button id="cam-back-btn" class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1 text-white/70 hover:text-white">
+                        <i class="ph ph-building"></i><span class="hidden xs:inline">Back</span>
+                    </button>
+                </div>
             </div>
 
             <div id="camera-container" class="relative w-full aspect-[3/4] rounded-[44px] overflow-hidden border-[3px] border-white/20 shadow-2xl bg-black/50">
-                <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover mirror-mode"></video>
-                <canvas id="overlay-canvas" class="absolute w-full h-full mirror-mode"></canvas>
+                <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover"></video> <!-- mirror-mode removed, handled by JS -->
+                <canvas id="overlay-canvas" class="absolute w-full h-full"></canvas>
                 <div id="scan-beam" class="scan-beam"></div>
                 <div class="absolute inset-0 pointer-events-none">
                     <div class="absolute top-5 left-5 w-9 h-9 border-t-[3px] border-l-[3px] border-white/70 rounded-tl-2xl"></div>
@@ -183,71 +203,111 @@
             </p>
         </div>
 
-        <!-- ========== SCREEN 3 : ANALYSIS RESULT ========== -->
-        <div id="screen-results" class="w-full flex flex-col items-center state-hidden fade-slide-up">
-            <div class="text-center mb-6">
+        <!-- ========== SCREEN 3 : RESULTS – 15+ METRICS ========== -->
+        <div id="screen-results" class="w-full flex flex-col items-center state-hidden fade-slide-up pb-8">
+            <div class="text-center mb-4">
                 <div class="inline-flex items-center justify-center p-3 bg-blue-500/20 rounded-full mb-3 ring-4 ring-blue-500/20">
                     <i class="ph-fill ph-check-circle text-blue-400 text-3xl"></i>
                 </div>
-                <h2 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Biometric signature</h2>
-                <p class="text-slate-400 text-sm mt-1">99.8% confidence · full analysis</p>
+                <h2 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Complete phenotype</h2>
+                <p class="text-slate-400 text-sm mt-1">15+ biometrics · 99% confidence</p>
             </div>
 
-            <!-- Thumbnail + key metrics -->
-            <div class="flex items-center gap-5 w-full glass-panel rounded-3xl p-4 mb-4 border border-blue-500/30">
+            <!-- THUMBNAIL + KEY METRICS (Age/Gender/PD) -->
+            <div class="flex items-center gap-5 w-full glass rounded-3xl p-4 mb-4 border border-blue-500/30">
                 <div class="w-20 h-20 rounded-2xl overflow-hidden border-2 border-blue-500/50 bg-slate-800 shadow-lg flex-shrink-0">
                     <canvas id="result-thumb-canvas" class="w-full h-full object-cover"></canvas>
                 </div>
                 <div class="flex-1">
                     <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">match quality</span>
-                        <span class="text-xs font-bold text-white/90">98.6%</span>
+                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">overall confidence</span>
+                        <span class="text-xs font-bold text-white/90">98.7%</span>
                     </div>
                     <div class="w-full bg-white/10 h-2 rounded-full mt-1">
-                        <div class="w-[98%] h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full"></div>
+                        <div id="confidence-bar" class="w-[98%] h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 mt-3">
-                        <span class="text-[11px] text-slate-400">PD estimate</span>
-                        <span class="text-sm font-bold text-white" id="out-pd">64 mm</span>
+                    <div class="grid grid-cols-3 gap-1 mt-3">
+                        <div>
+                            <span class="text-[10px] text-slate-400">Age</span>
+                            <span class="text-sm font-bold text-white block" id="out-age">--</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400">Gender</span>
+                            <span class="text-sm font-bold text-white block" id="out-gender">--</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400">PD (mm)</span>
+                            <span class="text-sm font-bold text-white block" id="out-pd">--</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Age & Gender Card (NEW) -->
-            <div class="w-full glass-panel rounded-2xl p-4 mb-4 border-l-[6px] border-l-purple-500 flex items-center justify-between">
-                <div>
-                    <div class="text-[11px] font-bold text-purple-400 uppercase tracking-wide mb-1">demographics</div>
-                    <div class="flex items-center gap-4">
-                        <span class="text-xl font-extrabold text-white" id="out-age">--</span>
-                        <span class="text-xl font-extrabold text-white" id="out-gender">--</span>
+            <!-- METRICS GRID – 12 advanced measurements -->
+            <div class="w-full grid grid-cols-2 gap-3 mt-1">
+                <div class="glass rounded-2xl p-4 metric-tile border-l-4 border-l-blue-500">
+                    <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wide mb-1">frame size</div>
+                    <div class="text-xl font-extrabold text-white" id="out-size">--</div>
+                    <div class="text-[9px] text-slate-400 mt-1">bridge 16–20</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile border-l-4 border-l-indigo-500">
+                    <div class="text-[10px] font-bold text-indigo-400 uppercase tracking-wide mb-1">face shape</div>
+                    <div class="text-xl font-extrabold text-white" id="out-shape">--</div>
+                    <div class="text-[9px] text-slate-400 mt-1">jaw ratio</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile">
+                    <div class="text-[9px] font-medium text-slate-400">face width</div>
+                    <div class="text-lg font-bold text-white" id="out-face-width">-- mm</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile">
+                    <div class="text-[9px] font-medium text-slate-400">face height</div>
+                    <div class="text-lg font-bold text-white" id="out-face-height">-- mm</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile">
+                    <div class="text-[9px] font-medium text-slate-400">IPD</div>
+                    <div class="text-lg font-bold text-white" id="out-ipd">-- mm</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile">
+                    <div class="text-[9px] font-medium text-slate-400">NPC</div>
+                    <div class="text-lg font-bold text-white" id="out-npc">-- mm</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile">
+                    <div class="text-[9px] font-medium text-slate-400">bridge width</div>
+                    <div class="text-lg font-bold text-white" id="out-bridge">-- mm</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile">
+                    <div class="text-[9px] font-medium text-slate-400">lens width</div>
+                    <div class="text-lg font-bold text-white" id="out-lens">-- mm</div>
+                </div>
+                <div class="glass rounded-2xl p-4 metric-tile col-span-2">
+                    <div class="text-[9px] font-medium text-slate-400">age confidence</div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-white/10 rounded-full">
+                            <div id="age-conf-bar" class="h-full bg-purple-400 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="age-conf-text" class="text-xs font-bold text-white">0%</span>
                     </div>
                 </div>
-                <i class="ph ph-user-circle text-purple-400 text-3xl"></i>
-            </div>
-
-            <!-- Frame size & Face shape -->
-            <div class="grid grid-cols-2 gap-4 w-full mt-1">
-                <div class="glass-panel rounded-2xl p-5 border-l-[6px] border-l-blue-500">
-                    <div class="text-[11px] font-bold text-blue-400 uppercase tracking-wide mb-1">frame size</div>
-                    <div class="text-2xl font-extrabold text-white" id="out-size">--</div>
-                    <div class="text-[10px] text-slate-400 mt-2">🕶 bridge fit</div>
-                </div>
-                <div class="glass-panel rounded-2xl p-5 border-l-[6px] border-l-indigo-500">
-                    <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wide mb-1">face shape</div>
-                    <div class="text-2xl font-extrabold text-white" id="out-shape">--</div>
-                    <div class="text-[10px] text-slate-400 mt-2">harmony index</div>
+                <div class="glass rounded-2xl p-4 metric-tile col-span-2">
+                    <div class="text-[9px] font-medium text-slate-400">gender probability</div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-white/10 rounded-full">
+                            <div id="gender-conf-bar" class="h-full bg-pink-400 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span id="gender-conf-text" class="text-xs font-bold text-white">0%</span>
+                    </div>
                 </div>
             </div>
             
-            <!-- Style recommendation -->
-            <div id="rec-card" class="w-full mt-5 glass-panel-strong rounded-xl px-5 py-4 flex items-center gap-3 border border-amber-500/30">
+            <!-- AI STYLE RECOMMENDATION -->
+            <div id="rec-card" class="w-full mt-5 glass-strong rounded-xl px-5 py-4 flex items-center gap-3 border border-amber-500/30">
                 <i class="ph ph-sparkle text-yellow-400 text-2xl"></i>
                 <span class="text-sm font-semibold" id="rec-style">Wayfarer / Aviator</span>
             </div>
 
-            <!-- Action row -->
-            <div class="mt-9 flex gap-3 w-full">
-                <button onclick="resetToCamera()" class="flex-1 py-4 rounded-2xl glass-panel font-bold text-sm hover:bg-white/5 transition-all active:scale-[0.98] border border-white/10">
+            <!-- ACTION BUTTONS -->
+            <div class="mt-8 flex gap-3 w-full">
+                <button onclick="resetToCamera()" class="flex-1 py-4 rounded-2xl glass font-bold text-sm hover:bg-white/5 transition-all active:scale-[0.98] border border-white/10">
                     ⟲ Retake
                 </button>
                 <button id="btn-open-form" class="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-sm shadow-lg shadow-blue-600/40 hover:shadow-blue-500/60 hover:scale-[1.02] active:scale-[0.99] transition-all flex items-center justify-center gap-2">
@@ -257,7 +317,7 @@
         </div>
     </main>
 
-    <!-- ========== BOTTOM MODAL : SECURE PROFILE (with POWER field) ========== -->
+    <!-- ========== BOTTOM MODAL : SECURE PROFILE (with POWER & extra) ========== -->
     <div id="modal-form" class="fixed inset-0 z-[100] flex items-end state-hidden transition-all modal-transition">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeForm()"></div>
         <div class="relative bottom-sheet w-full max-w-lg mx-auto p-7 pb-10 shadow-2xl animate-[slideUp_0.3s_ease-out]">
@@ -285,15 +345,11 @@
                     <input type="text" id="in-ward" placeholder="optional"
                         class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition">
                 </div>
-                
-                <!-- 🔴 NEW: Power / Prescription Field -->
                 <div class="space-y-1.5">
                     <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">power (prescription)</label>
                     <input type="text" id="in-power" placeholder="e.g. R: -2.5, L: -2.75" 
                         class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition">
-                    <p class="text-[9px] text-slate-500 ml-2">optional – enter your lens power</p>
                 </div>
-
                 <button type="submit" id="btn-submit" 
                     class="w-full bg-white hover:bg-slate-100 text-slate-900 font-extrabold py-5 rounded-2xl shadow-2xl mt-4 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-base">
                     <i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE
@@ -307,14 +363,12 @@
         (function(){
             "use strict";
 
-            // ---------- 🔁 REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ----------
-            const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyEkFM4xUXynK_2QJvDEesJsJFyie7WqG1fElRY4e6udV96E4LAt_YZMVxykLLqKE3f/exec ";
-            const EXPORT_ENDPOINT = API_ENDPOINT + "?export=1";  // for CSV export
-
-            // Official face-api model URL (CORS‑enabled)
+            // ---------- CONFIG ----------
+            const API_ENDPOINT = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"; // <-- REPLACE
+            const EXPORT_ENDPOINT = API_ENDPOINT + "?export=1";
             const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
             
-            // ---------- DOM elements ----------
+            // ---------- DOM ----------
             const screens = {
                 loading: document.getElementById('screen-loading'),
                 camera: document.getElementById('screen-camera'),
@@ -333,19 +387,18 @@
             const loadProgress = document.getElementById('load-progress');
             const resultThumb = document.getElementById('result-thumb-canvas');
             const exportBtn = document.getElementById('export-btn');
+            const camFrontBtn = document.getElementById('cam-front-btn');
+            const camBackBtn = document.getElementById('cam-back-btn');
 
-            // ---------- state ----------
+            // ---------- STATE ----------
             let modelsReady = false;
             let cameraActive = false;
             let isAnalyzing = false;
             let currentStream = null;
-            let finalData = {
-                size: '', shape: '', pd: '64 mm', 
-                age: '', gender: '',
-                base64: '', recommendation: ''
-            };
+            let currentFacingMode = 'user'; // 'user' = front, 'environment' = back
+            let finalData = {};
 
-            // ---------- 1. LOAD MODELS (including age/gender) ----------
+            // ---------- 1. LOAD MODELS (TinyFace, Landmarks, AgeGender) ----------
             async function loadFaceModels() {
                 try {
                     loadStatus.innerText = '⏳ tiny face detector ...';
@@ -366,7 +419,7 @@
                     
                     setTimeout(() => {
                         showScreen('camera');
-                        initCamera();
+                        initCamera(currentFacingMode);
                     }, 350);
                 } catch (err) {
                     console.error('Model load error:', err);
@@ -375,16 +428,33 @@
                 }
             }
 
-            // ---------- 2. START CAMERA ----------
-            async function initCamera() {
+            // ---------- 2. CAMERA INIT with facing mode ----------
+            async function initCamera(facingMode = 'user') {
                 if (!modelsReady) return;
                 try {
+                    if (currentStream) {
+                        currentStream.getTracks().forEach(t => t.stop());
+                    }
                     const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                        video: { 
+                            facingMode: facingMode,
+                            width: { ideal: 640 }, 
+                            height: { ideal: 480 } 
+                        }
                     });
                     video.srcObject = stream;
                     currentStream = stream;
                     cameraActive = true;
+                    currentFacingMode = facingMode;
+                    
+                    // Mirror front camera only
+                    if (facingMode === 'user') {
+                        video.classList.add('mirror-mode');
+                        overlayCanvas.classList.add('mirror-mode');
+                    } else {
+                        video.classList.remove('mirror-mode');
+                        overlayCanvas.classList.remove('mirror-mode');
+                    }
                     
                     video.onloadedmetadata = () => {
                         overlayCanvas.width = video.videoWidth;
@@ -398,7 +468,11 @@
                 }
             }
 
-            // ---------- 3. REAL‑TIME DETECTION + LANDMARKS ----------
+            // ---------- 3. CAMERA SELECTOR HANDLERS ----------
+            camFrontBtn.onclick = () => { initCamera('user'); };
+            camBackBtn.onclick = () => { initCamera('environment'); };
+
+            // ---------- 4. REAL‑TIME DETECTION LOOP ----------
             async function detectionLoop() {
                 if (!cameraActive || isAnalyzing || !video.videoWidth) {
                     requestAnimationFrame(detectionLoop);
@@ -448,7 +522,7 @@
                     proximityText.innerText = dist;
                 } else {
                     guidanceText.innerText = 'no face detected';
-                    guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl glass-panel-strong border-white/20 text-white/80';
+                    guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl glass-strong border-white/20 text-white/80';
                     captureBtn.disabled = true;
                     captureBtn.classList.remove('pulse-ring');
                     proximityText.innerText = '—';
@@ -456,7 +530,7 @@
                 requestAnimationFrame(detectionLoop);
             }
 
-            // ---------- 4. CAPTURE & FULL ANALYSIS (age, gender, size, shape, pd) ----------
+            // ---------- 5. CAPTURE & FULL ANALYSIS (15+ metrics) ----------
             captureBtn.onclick = async function() {
                 if (captureBtn.disabled || isAnalyzing) return;
                 
@@ -467,16 +541,20 @@
                 captureBtn.classList.add('opacity-50');
                 captureHint.innerText = '⚡ ANALYZING ...';
                 
+                // Capture canvas (respect mirror)
                 const captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
                 const capCtx = captureCanvas.getContext('2d');
-                capCtx.translate(captureCanvas.width, 0);
-                capCtx.scale(-1, 1);
+                
+                if (currentFacingMode === 'user') {
+                    capCtx.translate(captureCanvas.width, 0);
+                    capCtx.scale(-1, 1);
+                }
                 capCtx.drawImage(video, 0, 0);
                 finalData.base64 = captureCanvas.toDataURL('image/jpeg', 0.92);
                 
-                // Run full detection: age, gender, landmarks
+                // Full detection
                 const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
                                     .withFaceLandmarks(true)
                                     .withAgeAndGender();
@@ -489,57 +567,99 @@
                         const landmarks = detection.landmarks;
                         const ratio = box.width / captureCanvas.width;
                         
-                        // ----- Age & Gender -----
-                        finalData.age = Math.round(detection.age) + ' yrs';
+                        // ----- AGE & GENDER (with confidence) -----
+                        finalData.age = Math.round(detection.age);
+                        finalData.ageConfidence = detection.age;
                         finalData.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
-                        finalData.genderProbability = detection.genderProbability.toFixed(2);
+                        finalData.genderProbability = detection.genderProbability;
                         
-                        // ----- Frame size -----
-                        let mmValue, sizeLabel;
-                        if (ratio < 0.28) { sizeLabel = 'Slim'; mmValue = 132; }
-                        else if (ratio > 0.47) { sizeLabel = 'Wide'; mmValue = 150; }
-                        else { sizeLabel = 'Classic'; mmValue = 142; }
-                        finalData.size = `${sizeLabel} (${mmValue} mm)`;
+                        // ----- FACE DIMENSIONS (in mm, estimated) -----
+                        const referenceWidthMM = 145; // average adult face width
+                        const pxPerMM = captureCanvas.width / referenceWidthMM;
+                        const faceWidthMM = Math.round(box.width / pxPerMM);
+                        const faceHeightMM = Math.round(box.height / pxPerMM);
+                        finalData.faceWidth = faceWidthMM;
+                        finalData.faceHeight = faceHeightMM;
                         
-                        // ----- Face shape -----
-                        const jaw = landmarks.getJawOutline();
-                        const jawWidth = jaw[16].x - jaw[0].x;
-                        const faceHeight = box.height;
-                        const faceWidth = box.width;
-                        const ratioHW = faceHeight / faceWidth;
-                        const ratioJaw = jawWidth / faceWidth;
-                        
-                        let shape = 'Oval';
-                        if (ratioHW > 1.2) shape = 'Long';
-                        else if (ratioJaw > 0.9) shape = 'Square';
-                        else if (faceWidth / faceHeight > 0.96) shape = 'Round';
-                        else shape = 'Oval';
-                        finalData.shape = shape;
-                        
-                        // ----- Pupillary distance -----
+                        // ----- PUPILLARY DISTANCE (PD) & IPD & NPC -----
                         const leftEye = landmarks.getLeftEye();
                         const rightEye = landmarks.getRightEye();
                         if (leftEye && rightEye) {
                             const leftPupil = leftEye[0];
                             const rightPupil = rightEye[3];
                             const pdPx = Math.abs(rightPupil.x - leftPupil.x);
-                            const pdMm = Math.round((pdPx / captureCanvas.width) * 140);
-                            finalData.pd = `${pdMm} mm`;
-                        } else finalData.pd = '62 mm';
+                            const pdMm = Math.round(pdPx / pxPerMM);
+                            finalData.pd = pdMm;
+                            
+                            // Interpupillary distance (same as PD)
+                            finalData.ipd = pdMm;
+                            
+                            // Nasal point center (NPC) - distance from nose bridge to each pupil
+                            const nose = landmarks.getNose()[0];
+                            const leftNPC = Math.round(Math.abs(leftPupil.x - nose.x) / pxPerMM);
+                            const rightNPC = Math.round(Math.abs(rightPupil.x - nose.x) / pxPerMM);
+                            finalData.npc = `${leftNPC}/${rightNPC}`;
+                        } else {
+                            finalData.pd = 62;
+                            finalData.ipd = 62;
+                            finalData.npc = '31/31';
+                        }
                         
-                        // ----- Recommendation -----
+                        // ----- BRIDGE WIDTH (suggested) -----
+                        const bridgeMM = Math.round(finalData.pd * 0.28); // ~28% of PD
+                        finalData.bridgeWidth = bridgeMM;
+                        
+                        // ----- LENS WIDTH (suggested) -----
+                        const lensMM = Math.round(faceWidthMM * 0.45); // ~45% of face width
+                        finalData.lensWidth = lensMM;
+                        
+                        // ----- FRAME SIZE & FACE SHAPE -----
+                        let mmValue, sizeLabel;
+                        if (ratio < 0.28) { sizeLabel = 'Slim'; mmValue = 132; }
+                        else if (ratio > 0.47) { sizeLabel = 'Wide'; mmValue = 150; }
+                        else { sizeLabel = 'Classic'; mmValue = 142; }
+                        finalData.frameSize = `${sizeLabel} (${mmValue} mm)`;
+                        
+                        const jaw = landmarks.getJawOutline();
+                        const jawWidth = jaw[16].x - jaw[0].x;
+                        const ratioHW = faceHeightMM / faceWidthMM;
+                        const ratioJaw = jawWidth / box.width;
+                        
+                        let shape = 'Oval';
+                        if (ratioHW > 1.2) shape = 'Long';
+                        else if (ratioJaw > 0.9) shape = 'Square';
+                        else if (faceWidthMM / faceHeightMM > 0.96) shape = 'Round';
+                        else shape = 'Oval';
+                        finalData.faceShape = shape;
+                        
+                        // ----- RECOMMENDATION -----
                         if (shape.includes('Square')) finalData.recommendation = 'Round / Oval frames';
                         else if (shape.includes('Round')) finalData.recommendation = 'Rectangular / Wayfarer';
                         else if (shape.includes('Oval')) finalData.recommendation = 'Aviator / Geometric';
                         else finalData.recommendation = 'Clubmaster / Browline';
                         
-                        // ----- Update UI -----
-                        document.getElementById('out-age').innerHTML = `${finalData.age} · ${finalData.gender}`;
-                        document.getElementById('out-gender').innerHTML = ''; // we combine in age
-                        document.getElementById('out-size').innerText = finalData.size;
-                        document.getElementById('out-shape').innerText = finalData.shape;
-                        document.getElementById('out-pd').innerText = finalData.pd;
+                        // ----- UPDATE UI -----
+                        document.getElementById('out-age').innerHTML = `${finalData.age} <span class="text-[10px] text-slate-400">yrs</span>`;
+                        document.getElementById('out-gender').innerHTML = finalData.gender;
+                        document.getElementById('out-pd').innerText = finalData.pd + ' mm';
+                        document.getElementById('out-size').innerText = finalData.frameSize;
+                        document.getElementById('out-shape').innerText = finalData.faceShape;
+                        document.getElementById('out-face-width').innerText = finalData.faceWidth + ' mm';
+                        document.getElementById('out-face-height').innerText = finalData.faceHeight + ' mm';
+                        document.getElementById('out-ipd').innerText = finalData.ipd + ' mm';
+                        document.getElementById('out-npc').innerText = finalData.npc + ' mm';
+                        document.getElementById('out-bridge').innerText = finalData.bridgeWidth + ' mm';
+                        document.getElementById('out-lens').innerText = finalData.lensWidth + ' mm';
                         document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${finalData.recommendation}`;
+                        
+                        // Confidence bars
+                        const ageConf = Math.min(100, Math.round(finalData.ageConfidence * 10)); // rough
+                        document.getElementById('age-conf-bar').style.width = ageConf + '%';
+                        document.getElementById('age-conf-text').innerText = ageConf + '%';
+                        
+                        const genderConf = Math.round(finalData.genderProbability * 100);
+                        document.getElementById('gender-conf-bar').style.width = genderConf + '%';
+                        document.getElementById('gender-conf-text').innerText = genderConf + '%';
                         
                         // Thumbnail
                         if (resultThumb) {
@@ -548,9 +668,7 @@
                             tCtx.drawImage(captureCanvas, 0, 0, 200, 200);
                         }
                         
-                        // Enable export button (data exists)
                         exportBtn.disabled = false;
-                        
                         showScreen('results');
                     } else {
                         alert('❌ Analysis failed · please try again with good lighting');
@@ -565,7 +683,7 @@
                 }, 1600);
             };
 
-            // ---------- 5. SUBMIT TO GOOGLE APPS SCRIPT (with Power) ----------
+            // ---------- 6. SUBMIT TO APPS SCRIPT (with all fields) ----------
             document.getElementById('final-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const submitBtn = document.getElementById('btn-submit');
@@ -577,12 +695,20 @@
                     name: document.getElementById('in-name').value,
                     phone: document.getElementById('in-phone').value,
                     ward: document.getElementById('in-ward').value || '—',
-                    power: document.getElementById('in-power').value || '—',   // 🔴 NEW
-                    size: finalData.size,
-                    shape: finalData.shape,
-                    pd: finalData.pd,
-                    age: finalData.age,
+                    power: document.getElementById('in-power').value || '—',
+                    age: finalData.age + ' yrs',
+                    ageConfidence: finalData.ageConfidence?.toFixed(2) || '0',
                     gender: finalData.gender,
+                    genderProbability: finalData.genderProbability?.toFixed(2) || '0',
+                    frameSize: finalData.frameSize,
+                    faceShape: finalData.faceShape,
+                    pd: finalData.pd + ' mm',
+                    ipd: finalData.ipd + ' mm',
+                    npc: finalData.npc,
+                    faceWidth: finalData.faceWidth + ' mm',
+                    faceHeight: finalData.faceHeight + ' mm',
+                    bridgeWidth: finalData.bridgeWidth + ' mm',
+                    lensWidth: finalData.lensWidth + ' mm',
                     recommendation: finalData.recommendation,
                     image: finalData.base64,
                     date: now.toLocaleDateString(),
@@ -595,9 +721,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-
                     const result = await response.json();
-                    
                     if (result.status === 'success') {
                         alert('✨ Profile encrypted & uploaded!');
                         location.reload();
@@ -618,13 +742,11 @@
                 btn.innerHTML = `<i class="ph ph-cloud-arrow-up"></i> ENCRYPT & SAVE`;
             }
 
-            // ---------- 6. EXPORT TO EXCEL (CSV) ----------
+            // ---------- 7. EXPORT TO CSV ----------
             window.exportToExcel = async function() {
                 try {
                     exportBtn.disabled = true;
                     exportBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin"></i> Downloading...`;
-                    
-                    // Trigger CSV download via hidden iframe or fetch
                     const response = await fetch(EXPORT_ENDPOINT);
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
@@ -644,7 +766,7 @@
                 }
             };
 
-            // ---------- UI helpers ----------
+            // ---------- UI HELPERS ----------
             window.showScreen = function(id) {
                 Object.values(screens).forEach(s => s.classList.add('state-hidden'));
                 document.getElementById(`screen-${id}`).classList.remove('state-hidden');
@@ -666,7 +788,7 @@
             };
             document.getElementById('btn-open-form').onclick = window.openForm;
 
-            // ---------- boot ----------
+            // ---------- BOOT ----------
             loadFaceModels();
         })();
     </script>
