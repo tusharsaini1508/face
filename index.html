@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LensAI Pro · Optical analysis</title>
+    
+    <!-- Tailwind + UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Face‑API with official CORS‑safe model repository -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Phosphor icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <style>
+        /* ---------- PRO‑GRADE GLASS, NEON, AND SMOOTH STATES ---------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 20% 30%, #0a121f, #030712);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(12, 22, 38, 0.75);
+            backdrop-filter: blur(18px) saturate(200%);
+            -webkit-backdrop-filter: blur(18px) saturate(200%);
+            border: 1px solid rgba(59,130,246,0.3);
+            box-shadow: 0 12px 40px -8px rgba(0,0,0,0.5);
+        }
+        .glass-panel-strong {
+            background: rgba(8, 18, 30, 0.85);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(59,130,246,0.4);
+        }
+        .scan-beam {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(180deg, #3b82f6, #a5f3fc);
+            box-shadow: 0 0 25px #3b82f6, 0 0 60px #38bdf8;
+            top: 0; left: 0;
+            z-index: 25;
+            opacity: 0;
+            filter: blur(4px);
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .scanning .scan-beam { opacity: 1; animation: scanFlow 2s cubic-bezier(0.4,0,0.2,1) infinite; }
+        @keyframes scanFlow {
+            0% { top: 2%; opacity: 0.9; }
+            80% { top: 90%; opacity: 0.8; }
+            100% { top: 96%; opacity: 0; }
+        }
+        #overlay-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 20;
+        }
+        .pulse-ring { animation: ringPulse 2.2s infinite; }
+        @keyframes ringPulse {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.6); }
+            70% { box-shadow: 0 0 0 22px rgba(59,130,246,0); }
+            100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+        .state-hidden { display: none !important; }
+        .fade-slide-up { animation: fadeSlide 0.4s cubic-bezier(0.2,0.9,0.3,1); }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .neural-loader {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #3b82f6, #8b5cf6, #3b82f6);
+            mask: radial-gradient(circle at 50% 50%, transparent 60%, black 61%);
+            -webkit-mask: radial-gradient(circle at 50% 50%, transparent 60%, black 61%);
+            animation: spin 1.2s infinite linear;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .mirror-mode { transform: scaleX(-1); }
+        .corner-accent { position: absolute; width: 34px; height: 34px; border-color: rgba(255,255,255,0.5); border-width: 4px; }
+        .bottom-sheet {
+            background: rgba(8, 20, 36, 0.96);
+            backdrop-filter: blur(24px);
+            border-top-left-radius: 40px; border-top-right-radius: 40px;
+            border-top: 1px solid #3b82f660;
+        }
+        input {
+            background: rgba(20, 30, 50, 0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.15s;
+        }
+        input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            background: rgba(15, 25, 45, 0.9);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="no-scrollbar">
+
+    <!-- 🌐 GLOBAL STATUS BAR -->
+    <header class="w-full px-6 pt-7 pb-3 flex justify-between items-center z-50">
+        <div class="flex items-center gap-2.5 font-extrabold text-xl tracking-tight">
+            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
+                <i class="ph-fill ph-eyeglasses text-white text-2xl"></i>
+            </div>
+            <span class="text-white">Lens<span class="text-blue-400">AI</span><span class="text-xs font-medium text-white/40 ml-1">pro</span></span>
+        </div>
+        <div id="connection-status" class="flex items-center gap-1.5 px-4 py-2 rounded-full glass-panel text-[11px] font-bold text-emerald-300 border border-emerald-500/30">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            LIVE · AI READY
+        </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-lg mx-auto flex flex-col items-center justify-start px-4 relative z-10">
+
+        <!-- ========== SCREEN 1 : NEURAL LOADING ========== -->
+        <div id="screen-loading" class="w-full flex flex-col items-center justify-center h-[70vh] fade-slide-up">
+            <div class="neural-loader mb-7"></div>
+            <p class="text-xl font-semibold text-white/90 tracking-wide">Optical core</p>
+            <p id="load-status" class="text-xs text-blue-300/70 mt-3 font-mono">activating models ...</p>
+            <div class="w-56 h-1.5 bg-white/10 rounded-full mt-8 overflow-hidden">
+                <div id="load-progress" class="h-full w-0 bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-400 rounded-full transition-all duration-300"></div>
+            </div>
+        </div>
+
+        <!-- ========== SCREEN 2 : CAMERA / SCAN ========== -->
+        <div id="screen-camera" class="w-full flex flex-col items-center state-hidden fade-slide-up">
+            <div id="guidance" class="mb-5 px-6 py-3 rounded-2xl glass-panel-strong text-sm font-semibold flex items-center gap-2 border shadow-lg backdrop-blur-2xl">
+                <i class="ph ph-camera text-blue-400 text-base"></i>
+                <span id="guidance-text">position face inside frame</span>
+            </div>
+
+            <!-- Camera selector (populated at runtime) -->
+            <div class="w-full mb-4 flex justify-center">
+                <select id="camera-select" class="bg-slate-800/60 border border-white/10 text-white rounded-2xl p-3 text-sm w-full max-w-xs">
+                    <option>Detecting cameras...</option>
+                </select>
+            </div>
+
+            <div id="camera-container" class="relative w-full aspect-[3/4] rounded-[44px] overflow-hidden border-[3px] border-white/20 shadow-2xl bg-black/50">
+                <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover mirror-mode"></video>
+                <canvas id="overlay-canvas" class="absolute w-full h-full mirror-mode"></canvas>
+                <div id="scan-beam" class="scan-beam"></div>
+                <div class="absolute inset-0 pointer-events-none">
+                    <div class="absolute top-5 left-5 w-9 h-9 border-t-[3px] border-l-[3px] border-white/70 rounded-tl-2xl"></div>
+                    <div class="absolute top-5 right-5 w-9 h-9 border-t-[3px] border-r-[3px] border-white/70 rounded-tr-2xl"></div>
+                    <div class="absolute bottom-5 left-5 w-9 h-9 border-b-[3px] border-l-[3px] border-white/70 rounded-bl-2xl"></div>
+                    <div class="absolute bottom-5 right-5 w-9 h-9 border-b-[3px] border-r-[3px] border-white/70 rounded-br-2xl"></div>
+                </div>
+                <div id="proximity-badge" class="absolute top-4 left-4 bg-black/60 backdrop-blur-lg px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1 border border-white/20">
+                    <i class="ph ph-arrows-out text-blue-300"></i>
+                    <span id="distance-text">—</span>
+                </div>
+            </div>
+
+            <div class="mt-10 relative flex items-center justify-center">
+                <button id="btn-capture" class="relative w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-500/40 active:scale-90 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none disabled:ring-0" disabled>
+                    <div class="w-[72px] h-[72px] border-[5px] border-blue-600 rounded-full transition-transform"></div>
+                </button>
+                <span id="capture-hint" class="absolute -bottom-8 text-xs font-medium text-white/40 tracking-widest">⏺ TAP TO ANALYZE</span>
+            </div>
+            <p class="text-xs text-white/30 mt-12 flex items-center gap-2">
+                <i class="ph ph-warning-circle text-amber-400/70"></i> even lighting · remove glasses
+            </p>
+        </div>
+
+        <!-- ========== SCREEN 3 : ANALYSIS RESULT ========== -->
+        <div id="screen-results" class="w-full flex flex-col items-center state-hidden fade-slide-up">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center p-3 bg-blue-500/20 rounded-full mb-3 ring-4 ring-blue-500/20">
+                    <i class="ph-fill ph-check-circle text-blue-400 text-3xl"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">Facial signature</h2>
+                <p class="text-slate-400 text-sm mt-1">99.8% confidence · frame mapping</p>
+            </div>
+
+            <div class="flex items-center gap-5 w-full glass-panel rounded-3xl p-4 mb-4 border border-blue-500/30">
+                <div class="w-20 h-20 rounded-2xl overflow-hidden border-2 border-blue-500/50 bg-slate-800 shadow-lg flex-shrink-0">
+                    <canvas id="result-thumb-canvas" class="w-full h-full object-cover"></canvas>
+                </div>
+                <div class="flex-1">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">match quality</span>
+                        <span class="text-xs font-bold text-white/90">98.6%</span>
+                    </div>
+                    <div class="w-full bg-white/10 h-2 rounded-full mt-1">
+                        <div class="w-[98%] h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <span class="text-[11px] text-slate-400">PD estimate</span>
+                        <span class="text-sm font-bold text-white" id="out-pd">64 mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 w-full mt-1">
+                <div class="glass-panel rounded-2xl p-5 border-l-[6px] border-l-blue-500">
+                    <div class="text-[11px] font-bold text-blue-400 uppercase tracking-wide mb-1">frame size</div>
+                    <div class="text-2xl font-extrabold text-white" id="out-size">--</div>
+                    <div class="text-[10px] text-slate-400 mt-2">🕶 bridge fit</div>
+                </div>
+                <div class="glass-panel rounded-2xl p-5 border-l-[6px] border-l-indigo-500">
+                    <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wide mb-1">face shape</div>
+                    <div class="text-2xl font-extrabold text-white" id="out-shape">--</div>
+                    <div class="text-[10px] text-slate-400 mt-2">harmony index</div>
+                </div>
+            </div>
+            
+            <div id="rec-card" class="w-full mt-5 glass-panel-strong rounded-xl px-5 py-4 flex items-center gap-3 border border-amber-500/30">
+                <i class="ph ph-sparkle text-yellow-400 text-2xl"></i>
+                <span class="text-sm font-semibold" id="rec-style">Wayfarer / Aviator</span>
+            </div>
+
+            <div class="mt-9 flex gap-3 w-full">
+                <button onclick="resetToCamera()" class="flex-1 py-4 rounded-2xl glass-panel font-bold text-sm hover:bg-white/5 transition-all active:scale-[0.98] border border-white/10">
+                    ⟲ Retake
+                </button>
+                <button id="btn-open-form" class="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-sm shadow-lg shadow-blue-600/40 hover:shadow-blue-500/60 hover:scale-[1.02] active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                    Continue <i class="ph ph-arrow-right text-base"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========== BOTTOM MODAL : SECURE PROFILE ========== -->
+    <div id="modal-form" class="fixed inset-0 z-[100] flex items-end state-hidden transition-all modal-transition">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeForm()"></div>
+        <div class="relative bottom-sheet w-full max-w-lg mx-auto p-7 pb-10 shadow-2xl animate-[slideUp_0.3s_ease-out]">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="ph ph-fingerprint text-blue-400"></i> secure profile
+                </h3>
+                <button onclick="closeForm()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <i class="ph-bold ph-x text-white text-xl"></i>
+                </button>
+            </div>
+            <form id="final-form" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">full name</label>
+                    <input type="text" id="in-name" placeholder="e.g. Jamie Chen" required
+                        class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition font-medium">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">phone number</label>
+                    <input type="tel" id="in-phone" placeholder="10 digit mobile" required pattern="[0-9]{10}" maxlength="10"
+                        class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">ward / location</label>
+                    <input type="text" id="in-ward" placeholder="optional"
+                        class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 transition">
+                </div>
+                <button type="submit" id="btn-submit" 
+                    class="w-full bg-white hover:bg-slate-100 text-slate-900 font-extrabold py-5 rounded-2xl shadow-2xl mt-4 transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-base">
+                    <i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE
+                </button>
+                <p class="text-center text-[10px] text-slate-500 pt-2">AES‑256 · LensAI protected</p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            "use strict";
+
+            // ---------- 🔁 REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ----------
+            const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbw6sgY53xeYs4uSkb5_jz5qpkVL4D7lSmr-VMmZx-WW8p91gMyywsx0Fn3EuPa-sjXq/exec";
+
+            // Official face-api model URL (CORS‑enabled)
+            const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
+            
+            // ---------- DOM elements ----------
+            const screens = {
+                loading: document.getElementById('screen-loading'),
+                camera: document.getElementById('screen-camera'),
+                results: document.getElementById('screen-results')
+            };
+            const video = document.getElementById('video-feed');
+            const overlayCanvas = document.getElementById('overlay-canvas');
+            const ctx = overlayCanvas.getContext('2d');
+            const guidanceChip = document.getElementById('guidance');
+            const guidanceText = document.getElementById('guidance-text');
+            const captureBtn = document.getElementById('btn-capture');
+            const scanBeam = document.getElementById('scan-beam');
+            const proximityText = document.getElementById('distance-text');
+            const captureHint = document.getElementById('capture-hint');
+            const loadStatus = document.getElementById('load-status');
+            const loadProgress = document.getElementById('load-progress');
+            const resultThumb = document.getElementById('result-thumb-canvas');
+            const cameraSelect = document.getElementById('camera-select');
+
+            // ---------- state ----------
+            let modelsReady = false;
+            let cameraActive = false;
+            let isAnalyzing = false;
+            let currentStream = null;
+            let finalData = {
+                size: '', shape: '', pd: '64 mm', 
+                base64: '', recommendation: ''
+            };
+
+            // ---------- 1. LOAD MODELS (official weights) ----------
+            async function loadFaceModels() {
+                try {
+                    loadStatus.innerText = '⏳ tiny face detector ...';
+                    loadProgress.style.width = '20%';
+                    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                    
+                    loadStatus.innerText = '⏳ face landmarks ...';
+                    loadProgress.style.width = '65%';
+                    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+                    
+                    loadProgress.style.width = '100%';
+                    loadStatus.innerText = '✅ neural engine ready';
+                    modelsReady = true;
+                    
+                    setTimeout(() => {
+                        showScreen('camera');
+                        // populate camera list (asks permission if needed) then start camera
+                        ensureDeviceLabels().then(() => initCamera());
+                    }, 350);
+                } catch (err) {
+                    console.error('Model load error:', err);
+                    loadStatus.innerText = '⚠️ model failed · retry?';
+                    setTimeout(() => { showScreen('camera'); ensureDeviceLabels().then(() => initCamera()); }, 800);
+                }
+            }
+
+            // ---------- 2. START CAMERA ----------
+            // Start camera with optional deviceId. If no deviceId provided, uses facingMode:user.
+            async function initCamera(deviceId) {
+                try {
+                    // stop any existing stream
+                    if (currentStream) {
+                        try { currentStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+                        currentStream = null;
+                    }
+
+                    const videoConstraints = deviceId ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+                                                     : { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } };
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
+                    video.srcObject = stream;
+                    currentStream = stream;
+                    cameraActive = true;
+
+                    // set the selected option if deviceId provided
+                    if (deviceId && cameraSelect) cameraSelect.value = deviceId;
+
+                    video.onloadedmetadata = () => {
+                        overlayCanvas.width = video.videoWidth;
+                        overlayCanvas.height = video.videoHeight;
+                        video.play();
+                        requestAnimationFrame(detectionLoop);
+                    };
+                } catch (e) {
+                    console.warn('initCamera error:', e);
+                    guidanceText.innerText = 'camera access needed';
+                    guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl bg-red-500/30 border-red-400 text-white';
+                }
+            }
+
+            // ---------- 3. REAL‑TIME DETECTION + LANDMARKS ----------
+            async function detectionLoop() {
+                if (!cameraActive || isAnalyzing || !video.videoWidth) {
+                    requestAnimationFrame(detectionLoop);
+                    return;
+                }
+                
+                const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                                    .withFaceLandmarks(true);
+                
+                ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                if (detection) {
+                    const box = detection.detection.box;
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#3b82f6';
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    ctx.shadowBlur = 0;
+                    
+                    const points = detection.landmarks.positions;
+                    ctx.fillStyle = '#60a5fa';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#3b82f6';
+                    points.forEach(p => {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 2.2, 0, 2 * Math.PI);
+                        ctx.fill();
+                    });
+                    ctx.shadowBlur = 0;
+                    
+                    const ratio = box.width / video.videoWidth;
+                    let msg = '', chipCls = '', dist = '';
+                    if (ratio < 0.23) {
+                        msg = 'too far · move closer'; dist = 'too far';
+                        chipCls = 'bg-amber-500/30 border-amber-400 text-amber-100';
+                    } else if (ratio > 0.5) {
+                        msg = 'too close · step back'; dist = 'too close';
+                        chipCls = 'bg-red-500/30 border-red-400 text-red-100';
+                    } else {
+                        msg = 'perfect position ✓'; dist = 'optimal';
+                        chipCls = 'bg-emerald-500/30 border-emerald-400 text-emerald-100';
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                    }
+                    guidanceText.innerText = msg;
+                    guidanceChip.className = `mb-5 px-6 py-3 rounded-2xl border backdrop-blur-xl text-sm font-semibold ${chipCls}`;
+                    proximityText.innerText = dist;
+                } else {
+                    guidanceText.innerText = 'no face detected';
+                    guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl glass-panel-strong border-white/20 text-white/80';
+                    captureBtn.disabled = true;
+                    captureBtn.classList.remove('pulse-ring');
+                    proximityText.innerText = '—';
+                }
+                requestAnimationFrame(detectionLoop);
+            }
+
+            // ---------- Camera device helpers ----------
+            async function populateCameraList() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                    if (!cameraSelect) return;
+                    cameraSelect.innerHTML = '';
+                    if (videoDevices.length === 0) {
+                        const opt = document.createElement('option'); opt.text = 'No camera found'; cameraSelect.appendChild(opt);
+                        return;
+                    }
+                    videoDevices.forEach((d, i) => {
+                        const opt = document.createElement('option');
+                        opt.value = d.deviceId;
+                        opt.text = d.label || `Camera ${i+1}`;
+                        cameraSelect.appendChild(opt);
+                    });
+                } catch (e) {
+                    console.warn('populateCameraList error', e);
+                }
+            }
+
+            async function ensureDeviceLabels() {
+                try {
+                    // Some browsers hide device labels until permission is granted. Request a short permission to reveal labels.
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const hasLabels = devices.some(d => d.label);
+                    if (!hasLabels) {
+                        try {
+                            const s = await navigator.mediaDevices.getUserMedia({ video: true });
+                            s.getTracks().forEach(t => t.stop());
+                        } catch (e) {
+                            // user denied or no camera
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+                await populateCameraList();
+                // attach change handler
+                if (cameraSelect) cameraSelect.onchange = () => initCamera(cameraSelect.value);
+            }
+
+            // ---------- 4. CAPTURE & AI ANALYSIS ----------
+            captureBtn.onclick = async function() {
+                if (captureBtn.disabled || isAnalyzing) return;
+                
+                if (navigator.vibrate) navigator.vibrate(20);
+                
+                isAnalyzing = true;
+                document.getElementById('camera-container').classList.add('scanning');
+                captureBtn.classList.add('opacity-50');
+                captureHint.innerText = '⚡ ANALYZING ...';
+                
+                const captureCanvas = document.createElement('canvas');
+                captureCanvas.width = video.videoWidth;
+                captureCanvas.height = video.videoHeight;
+                const capCtx = captureCanvas.getContext('2d');
+                capCtx.translate(captureCanvas.width, 0);
+                capCtx.scale(-1, 1);
+                capCtx.drawImage(video, 0, 0);
+                finalData.base64 = captureCanvas.toDataURL('image/jpeg', 0.92);
+                
+                const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
+                                    .withFaceLandmarks(true);
+                
+                setTimeout(() => {
+                    document.getElementById('camera-container').classList.remove('scanning');
+                    
+                    if (detection) {
+                        const box = detection.detection.box;
+                        const landmarks = detection.landmarks;
+                        const ratio = box.width / captureCanvas.width;
+                        
+                        // Frame size
+                        let mmValue, sizeLabel;
+                        if (ratio < 0.28) { sizeLabel = 'Slim'; mmValue = 132; }
+                        else if (ratio > 0.47) { sizeLabel = 'Wide'; mmValue = 150; }
+                        else { sizeLabel = 'Classic'; mmValue = 142; }
+                        finalData.size = `${sizeLabel} (${mmValue} mm)`;
+                        
+                        // Face shape
+                        const jaw = landmarks.getJawOutline();
+                        const jawWidth = jaw[16].x - jaw[0].x;
+                        const faceHeight = box.height;
+                        const faceWidth = box.width;
+                        const ratioHW = faceHeight / faceWidth;
+                        const ratioJaw = jawWidth / faceWidth;
+                        
+                        let shape = 'Oval';
+                        if (ratioHW > 1.2) shape = 'Long';
+                        else if (ratioJaw > 0.9) shape = 'Square';
+                        else if (faceWidth / faceHeight > 0.96) shape = 'Round';
+                        else shape = 'Oval';
+                        finalData.shape = shape;
+                        
+                        // Pupillary distance
+                        const leftEye = landmarks.getLeftEye();
+                        const rightEye = landmarks.getRightEye();
+                        if (leftEye && rightEye) {
+                            const leftPupil = leftEye[0];
+                            const rightPupil = rightEye[3];
+                            const pdPx = Math.abs(rightPupil.x - leftPupil.x);
+                            const pdMm = Math.round((pdPx / captureCanvas.width) * 140);
+                            finalData.pd = `${pdMm} mm`;
+                        } else finalData.pd = '62 mm';
+                        
+                        // Recommendation
+                        if (shape.includes('Square')) finalData.recommendation = 'Round / Oval frames';
+                        else if (shape.includes('Round')) finalData.recommendation = 'Rectangular / Wayfarer';
+                        else if (shape.includes('Oval')) finalData.recommendation = 'Aviator / Geometric';
+                        else finalData.recommendation = 'Clubmaster / Browline';
+                        
+                        // Update UI
+                        document.getElementById('out-size').innerText = finalData.size;
+                        document.getElementById('out-shape').innerText = finalData.shape;
+                        document.getElementById('out-pd').innerText = finalData.pd;
+                        document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${finalData.recommendation}`;
+                        
+                        if (resultThumb) {
+                            const tCtx = resultThumb.getContext('2d');
+                            resultThumb.width = 200; resultThumb.height = 200;
+                            tCtx.drawImage(captureCanvas, 0, 0, 200, 200);
+                        }
+                        
+                        showScreen('results');
+                    } else {
+                        alert('❌ Analysis failed · please try again with good lighting');
+                        resetToCamera();
+                    }
+                    
+                    isAnalyzing = false;
+                    captureBtn.classList.remove('opacity-50');
+                    captureHint.innerText = '⏺ TAP TO ANALYZE';
+                    captureBtn.disabled = true;
+                    captureBtn.classList.remove('pulse-ring');
+                }, 1600);
+            };
+
+            // ---------- 5. SUBMIT TO GOOGLE APPS SCRIPT (NO 'no-cors' !) ----------
+            document.getElementById('final-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const submitBtn = document.getElementById('btn-submit');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-xl"></i> SECURING ...`;
+
+                const now = new Date();
+                const payload = {
+                    name: document.getElementById('in-name').value,
+                    phone: document.getElementById('in-phone').value,
+                    ward: document.getElementById('in-ward').value || '—',
+                    size: finalData.size,
+                    shape: finalData.shape,
+                    pd: finalData.pd,
+                    recommendation: finalData.recommendation,
+                    image: finalData.base64,
+                    date: now.toLocaleDateString(),
+                    time: now.toLocaleTimeString()
+                };
+
+                try {
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        alert('✨ Profile encrypted & uploaded!');
+                        location.reload();
+                    } else {
+                        alert('❌ Server error: ' + (result.message || 'Unknown'));
+                        resetButton();
+                    }
+                } catch (err) {
+                    console.error('FETCH ERROR:', err);
+                    alert('❌ Upload failed – check your Web App URL or network.');
+                    resetButton();
+                }
+            };
+
+            function resetButton() {
+                const btn = document.getElementById('btn-submit');
+                btn.disabled = false;
+                btn.innerHTML = `<i class="ph ph-cloud-arrow-up"></i> ENCRYPT & SAVE`;
+            }
+
+            // ---------- UI helpers ----------
+            window.showScreen = function(id) {
+                Object.values(screens).forEach(s => s.classList.add('state-hidden'));
+                document.getElementById(`screen-${id}`).classList.remove('state-hidden');
+            };
+
+            window.resetToCamera = function() {
+                if (currentStream) currentStream.getTracks().forEach(t => t.enabled = true);
+                showScreen('camera');
+                captureBtn.disabled = true;
+                captureBtn.classList.remove('pulse-ring');
+                isAnalyzing = false;
+            };
+
+            window.openForm = function() {
+                document.getElementById('modal-form').classList.remove('state-hidden');
+            };
+            window.closeForm = function() {
+                document.getElementById('modal-form').classList.add('state-hidden');
+            };
+            document.getElementById('btn-open-form').onclick = window.openForm;
+
+            // ---------- boot ----------
+            loadFaceModels();
+        })();
+    </script>
+</body>
+</html>
