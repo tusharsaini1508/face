@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>LensAI Pro · Biometric Capture</title>
     
-    <!-- Tailwind (lightweight) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Face-API with fallback detection -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Phosphor icons (optimised) -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -105,7 +102,6 @@
                 <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover mirror-mode"></video>
                 <canvas id="overlay-canvas" class="absolute w-full h-full mirror-mode"></canvas>
                 <div class="scan-beam"></div>
-                <!-- corner brackets -->
                 <div class="absolute top-5 left-5 w-9 h-9 border-t-[3px] border-l-[3px] border-white/70 rounded-tl-2xl"></div>
                 <div class="absolute top-5 right-5 w-9 h-9 border-t-[3px] border-r-[3px] border-white/70 rounded-tr-2xl"></div>
                 <div class="absolute bottom-5 left-5 w-9 h-9 border-b-[3px] border-l-[3px] border-white/70 rounded-bl-2xl"></div>
@@ -137,7 +133,6 @@
                 <p class="text-slate-400 text-sm mt-1">22‑point analysis</p>
             </div>
 
-            <!-- thumb + quick metrics -->
             <div class="flex items-center gap-4 w-full glass-panel rounded-3xl p-4 mb-3 border border-blue-500/30">
                 <div class="w-20 h-20 rounded-2xl overflow-hidden border-2 border-blue-500/50 bg-slate-800 flex-shrink-0">
                     <canvas id="result-thumb-canvas" class="w-full h-full object-cover"></canvas>
@@ -157,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- demographics + frame details -->
             <div class="w-full glass-panel rounded-2xl p-4 mb-3 border-l-4 border-l-purple-500 flex items-center justify-between">
                 <div>
                     <div class="text-[11px] font-bold text-purple-400 uppercase tracking-wide mb-1">demographics</div>
@@ -244,12 +238,12 @@
         (function(){
             "use strict";
 
-            // ========== 🔁 YOUR CUSTOM WEB APP URL ==========
+            // 🔁 YOUR WEB APP URL
             const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwoXhZaGB71b5xlrJ51froG7TkTR7YiU30Q10A_iI9X9ysZ37v67fvZhgKBH4UVtTAF/exec";
             const EXPORT_ENDPOINT = API_ENDPOINT + "?export=1";
             const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
 
-            // ---------- DOM ----------
+            // DOM elements
             const screens = {
                 loading: document.getElementById('screen-loading'),
                 camera: document.getElementById('screen-camera'),
@@ -270,15 +264,16 @@
             const exportBtn = document.getElementById('export-btn');
             const cameraContainer = document.getElementById('camera-container');
 
-            // ---------- STATE ----------
+            // State
             let modelsReady = false;
+            let offlineMode = false;        // true if models fail
             let cameraActive = false;
             let isAnalyzing = false;
             let currentStream = null;
-            let detectionInterval = null;
+            let lastDetect = 0;
             const analysisData = {};
 
-            // ---------- 1. LOAD MODELS WITH PROGRESS ----------
+            // ---------- 1. LOAD MODELS WITH TIMEOUT ----------
             async function loadFaceModels() {
                 try {
                     loadStatus.innerText = '⏳ tiny face detector ...';
@@ -296,21 +291,22 @@
                     loadProgress.style.width = '100%';
                     loadStatus.innerText = '✅ neural engine ready';
                     modelsReady = true;
+                    offlineMode = false;
                     retryBtn.classList.add('hidden');
-                    setTimeout(() => showScreen('camera'), 200);
                 } catch (err) {
-                    console.error('Model load error:', err);
-                    loadStatus.innerText = '⚠️ model download failed';
-                    loadProgress.style.width = '0%';
-                    retryBtn.classList.remove('hidden');
+                    console.warn('Model load failed – switching to offline mode', err);
+                    loadStatus.innerText = '⚠️ offline mode – basic capture only';
+                    loadProgress.style.width = '100%';
                     modelsReady = false;
-                    // still allow camera (manual mode)
+                    offlineMode = true;
+                    retryBtn.classList.remove('hidden');
+                } finally {
                     setTimeout(() => showScreen('camera'), 200);
                 }
             }
             retryBtn.onclick = () => { retryBtn.classList.add('hidden'); loadFaceModels(); };
 
-            // ---------- 2. CAMERA – ALWAYS AVAILABLE ----------
+            // ---------- 2. START CAMERA ----------
             async function startCamera() {
                 if (cameraActive && currentStream?.active) return;
                 try {
@@ -326,9 +322,16 @@
                     overlayCanvas.height = video.videoHeight;
                     video.play();
                     
-                    guidanceText.innerText = 'position face inside frame';
+                    guidanceText.innerText = offlineMode ? 'offline mode – tap to capture' : 'position face inside frame';
                     guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl glass-panel text-sm font-semibold';
-                    startDetectionLoop();
+                    
+                    if (!offlineMode) startDetectionLoop();
+                    else {
+                        // offline mode: enable capture immediately
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                        proximityText.innerText = 'ready';
+                    }
                 } catch (e) {
                     guidanceText.innerText = 'camera access needed';
                     guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl bg-red-500/30 border-red-400';
@@ -336,10 +339,14 @@
                 }
             }
 
-            // ---------- 3. THROTTLED DETECTION (every 200ms) ----------
-            let lastDetect = 0;
+            // ---------- 3. DETECTION LOOP (only if models ready) ----------
             async function detectionLoop(now) {
-                if (!cameraActive || isAnalyzing || !video.videoWidth || !modelsReady) {
+                if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode) {
+                    requestAnimationFrame(detectionLoop);
+                    return;
+                }
+                if (!modelsReady) {
+                    // models not ready yet – keep waiting
                     requestAnimationFrame(detectionLoop);
                     return;
                 }
@@ -357,7 +364,7 @@
                     
                     if (detection) {
                         const box = detection.detection.box;
-                        // draw box
+                        // draw bounding box
                         ctx.strokeStyle = '#3b82f6';
                         ctx.lineWidth = 3;
                         ctx.shadowBlur = 12;
@@ -370,12 +377,20 @@
                         ctx.fillStyle = '#60a5fa';
                         points.forEach(p => { ctx.fillRect(p.x-1, p.y-1, 2, 2); });
                         
-                        // distance feedback
+                        // distance feedback & enable button
                         const ratio = box.width / video.videoWidth;
                         let msg = '', cls = '', dist = '';
-                        if (ratio < 0.22) { msg = 'too far · move closer'; dist = 'too far'; cls = 'bg-amber-500/30 border-amber-400'; }
-                        else if (ratio > 0.48) { msg = 'too close · step back'; dist = 'too close'; cls = 'bg-red-500/30 border-red-400'; }
-                        else { 
+                        if (ratio < 0.22) { 
+                            msg = 'too far · move closer'; dist = 'too far'; 
+                            cls = 'bg-amber-500/30 border-amber-400';
+                            captureBtn.disabled = true;
+                            captureBtn.classList.remove('pulse-ring');
+                        } else if (ratio > 0.48) { 
+                            msg = 'too close · step back'; dist = 'too close'; 
+                            cls = 'bg-red-500/30 border-red-400';
+                            captureBtn.disabled = true;
+                            captureBtn.classList.remove('pulse-ring');
+                        } else { 
                             msg = 'perfect position ✓'; dist = 'optimal'; 
                             cls = 'bg-emerald-500/30 border-emerald-400 text-emerald-100';
                             captureBtn.disabled = false;
@@ -392,20 +407,17 @@
                         proximityText.innerText = '—';
                     }
                 } catch (err) {
-                    // face-api not ready – skip
+                    // ignore detection errors
                 }
                 requestAnimationFrame(detectionLoop);
             }
             function startDetectionLoop() {
-                if (!detectionInterval) requestAnimationFrame(detectionLoop);
+                requestAnimationFrame(detectionLoop);
             }
 
-            // ---------- 4. CAPTURE & 22‑POINT BIOMETRIC ANALYSIS ----------
+            // ---------- 4. CAPTURE & ANALYZE (works in both normal & offline) ----------
             captureBtn.onclick = async function() {
-                if (captureBtn.disabled || isAnalyzing || !modelsReady) {
-                    if (!modelsReady) alert('AI models still loading, please wait...');
-                    return;
-                }
+                if (captureBtn.disabled || isAnalyzing) return;
                 
                 isAnalyzing = true;
                 cameraContainer.classList.add('scanning');
@@ -413,7 +425,7 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                // capture flipped image
+                // capture image (mirrored)
                 const captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -423,15 +435,7 @@
                 capCtx.drawImage(video, 0, 0);
                 const base64Image = captureCanvas.toDataURL('image/jpeg', 0.9);
                 
-                // run full detection with age/gender
-                let detection;
-                try {
-                    detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
-                                        .withFaceLandmarks(true)
-                                        .withAgeAndGender();
-                } catch (e) { /* fallback */ }
-                
-                // ---------- EXTRACT 22+ METRICS ----------
+                // ---------- EXTRACT METRICS ----------
                 const now = new Date();
                 const metrics = {
                     timestamp: now.toLocaleString(),
@@ -440,102 +444,107 @@
                     imageBase64: base64Image
                 };
 
-                if (detection) {
-                    const box = detection.detection.box;
-                    const landmarks = detection.landmarks;
-                    const w = captureCanvas.width, h = captureCanvas.height;
-                    
-                    // ----- Age & Gender -----
-                    metrics.age = Math.round(detection.age) + ' yrs';
-                    metrics.ageRaw = Math.round(detection.age);
-                    metrics.ageConfidence = 0.94;
-                    metrics.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
-                    metrics.genderProbability = detection.genderProbability.toFixed(2);
-                    
-                    // ----- PD (pupillary distance) in px & mm -----
-                    const leftPupil = landmarks.getLeftEye()[0];   // index 0 is approximate pupil
-                    const rightPupil = landmarks.getRightEye()[3]; // index 3 is approximate pupil
-                    const pdPx = Math.abs(rightPupil.x - leftPupil.x);
-                    const estimatedPDmm = Math.round((pdPx / w) * 140); // calibration
-                    metrics.pd = `${estimatedPDmm} mm`;
-                    metrics.pdPx = pdPx;
-                    
-                    // pixel to mm conversion factor (based on PD)
-                    const mmPerPx = estimatedPDmm / pdPx;
-                    
-                    // ----- Face dimensions -----
-                    metrics.faceWidthPx = box.width;
-                    metrics.faceHeightPx = box.height;
-                    metrics.faceWidthMm = Math.round(box.width * mmPerPx);
-                    metrics.faceHeightMm = Math.round(box.height * mmPerPx);
-                    
-                    // ----- Bridge width (inner eye corners) -----
-                    const leftInnerEye = landmarks.positions[39]; // 68‑point: left eye inner corner
-                    const rightInnerEye = landmarks.positions[42]; // right eye inner corner
-                    const bridgePx = Math.abs(rightInnerEye.x - leftInnerEye.x);
-                    metrics.bridgeWidthMm = Math.round(bridgePx * mmPerPx);
-                    
-                    // ----- Lens width (average eye width) -----
-                    const leftEyeOuter = landmarks.positions[36];
-                    const leftEyeInner = landmarks.positions[39];
-                    const rightEyeOuter = landmarks.positions[45];
-                    const rightEyeInner = landmarks.positions[42];
-                    const leftEyeWidthPx = Math.abs(leftEyeInner.x - leftEyeOuter.x);
-                    const rightEyeWidthPx = Math.abs(rightEyeInner.x - rightEyeOuter.x);
-                    const avgEyeWidthPx = (leftEyeWidthPx + rightEyeWidthPx) / 2;
-                    metrics.lensWidthMm = Math.round(avgEyeWidthPx * mmPerPx);
-                    
-                    // ----- IPD (same as PD) -----
-                    metrics.ipd = metrics.pd;
-                    
-                    // ----- NPC (near point convergence) – approximation -----
-                    metrics.npc = Math.round(estimatedPDmm * 0.95) + ' mm'; // simple near PD
-                    
-                    // ----- Frame size classification -----
-                    const ratio = box.width / w;
-                    let sizeLabel, mmVal;
-                    if (ratio < 0.28) { sizeLabel = 'Slim'; mmVal = 132; }
-                    else if (ratio > 0.47) { sizeLabel = 'Wide'; mmVal = 150; }
-                    else { sizeLabel = 'Classic'; mmVal = 142; }
-                    metrics.frameSize = `${sizeLabel} (${mmVal} mm)`;
-                    metrics.frameSizeRaw = sizeLabel;
-                    
-                    // ----- Face shape -----
-                    const jaw = landmarks.getJawOutline();
-                    const jawWidth = jaw[16].x - jaw[0].x;
-                    const ratioHW = box.height / box.width;
-                    const ratioJaw = jawWidth / box.width;
-                    let shape = 'Oval';
-                    if (ratioHW > 1.2) shape = 'Long';
-                    else if (ratioJaw > 0.9) shape = 'Square';
-                    else if (box.width / box.height > 0.96) shape = 'Round';
-                    metrics.faceShape = shape;
-                    
-                    // ----- Recommendation -----
-                    if (shape.includes('Square')) metrics.recommendation = 'Round / Oval frames';
-                    else if (shape.includes('Round')) metrics.recommendation = 'Rectangular / Wayfarer';
-                    else if (shape.includes('Oval')) metrics.recommendation = 'Aviator / Geometric';
-                    else metrics.recommendation = 'Clubmaster / Browline';
-                    
-                } else {
-                    // fallback if AI fails
-                    metrics.age = '--'; metrics.gender = '--'; metrics.pd = '62 mm'; 
-                    metrics.frameSize = 'Classic (142 mm)'; metrics.faceShape = 'Oval';
-                    metrics.recommendation = 'Wayfarer / Aviator';
-                    metrics.bridgeWidthMm = 18; metrics.lensWidthMm = 52;
-                    metrics.faceWidthMm = 142; metrics.faceHeightMm = 188;
+                // If models ready, run AI analysis; else use fallback
+                if (modelsReady && !offlineMode) {
+                    try {
+                        const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
+                                            .withFaceLandmarks(true)
+                                            .withAgeAndGender();
+                        
+                        if (detection) {
+                            const box = detection.detection.box;
+                            const landmarks = detection.landmarks;
+                            const w = captureCanvas.width;
+                            
+                            // Age & Gender
+                            metrics.age = Math.round(detection.age) + ' yrs';
+                            metrics.ageRaw = Math.round(detection.age);
+                            metrics.ageConfidence = 0.94;
+                            metrics.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
+                            metrics.genderProbability = detection.genderProbability.toFixed(2);
+                            
+                            // PD
+                            const leftPupil = landmarks.getLeftEye()[0];
+                            const rightPupil = landmarks.getRightEye()[3];
+                            const pdPx = Math.abs(rightPupil.x - leftPupil.x);
+                            const estimatedPDmm = Math.round((pdPx / w) * 140);
+                            metrics.pd = `${estimatedPDmm} mm`;
+                            const mmPerPx = estimatedPDmm / pdPx;
+                            
+                            // Face dimensions
+                            metrics.faceWidthMm = Math.round(box.width * mmPerPx);
+                            metrics.faceHeightMm = Math.round(box.height * mmPerPx);
+                            
+                            // Bridge width
+                            const leftInnerEye = landmarks.positions[39];
+                            const rightInnerEye = landmarks.positions[42];
+                            const bridgePx = Math.abs(rightInnerEye.x - leftInnerEye.x);
+                            metrics.bridgeWidthMm = Math.round(bridgePx * mmPerPx);
+                            
+                            // Lens width
+                            const leftEyeOuter = landmarks.positions[36];
+                            const leftEyeInner = landmarks.positions[39];
+                            const rightEyeOuter = landmarks.positions[45];
+                            const rightEyeInner = landmarks.positions[42];
+                            const leftEyeWidthPx = Math.abs(leftEyeInner.x - leftEyeOuter.x);
+                            const rightEyeWidthPx = Math.abs(rightEyeInner.x - rightEyeOuter.x);
+                            metrics.lensWidthMm = Math.round(((leftEyeWidthPx + rightEyeWidthPx) / 2) * mmPerPx);
+                            
+                            metrics.ipd = metrics.pd;
+                            metrics.npc = Math.round(estimatedPDmm * 0.95) + ' mm';
+                            
+                            // Frame size
+                            const ratio = box.width / w;
+                            if (ratio < 0.28) metrics.frameSize = 'Slim (132 mm)';
+                            else if (ratio > 0.47) metrics.frameSize = 'Wide (150 mm)';
+                            else metrics.frameSize = 'Classic (142 mm)';
+                            
+                            // Face shape
+                            const jaw = landmarks.getJawOutline();
+                            const jawWidth = jaw[16].x - jaw[0].x;
+                            const ratioHW = box.height / box.width;
+                            const ratioJaw = jawWidth / box.width;
+                            let shape = 'Oval';
+                            if (ratioHW > 1.2) shape = 'Long';
+                            else if (ratioJaw > 0.9) shape = 'Square';
+                            else if (box.width / box.height > 0.96) shape = 'Round';
+                            metrics.faceShape = shape;
+                            
+                            // Recommendation
+                            if (shape.includes('Square')) metrics.recommendation = 'Round / Oval frames';
+                            else if (shape.includes('Round')) metrics.recommendation = 'Rectangular / Wayfarer';
+                            else if (shape.includes('Oval')) metrics.recommendation = 'Aviator / Geometric';
+                            else metrics.recommendation = 'Clubmaster / Browline';
+                        }
+                    } catch (e) {
+                        console.warn('Analysis failed, using fallback', e);
+                    }
                 }
-
-                // store globally for later submission
+                
+                // FALLBACK for missing fields (AI failed or offline)
+                if (!metrics.age) metrics.age = '--';
+                if (!metrics.gender) metrics.gender = '--';
+                if (!metrics.pd) metrics.pd = '62 mm';
+                if (!metrics.frameSize) metrics.frameSize = 'Classic (142 mm)';
+                if (!metrics.faceShape) metrics.faceShape = 'Oval';
+                if (!metrics.recommendation) metrics.recommendation = 'Wayfarer / Aviator';
+                if (!metrics.bridgeWidthMm) metrics.bridgeWidthMm = 18;
+                if (!metrics.lensWidthMm) metrics.lensWidthMm = 52;
+                if (!metrics.faceWidthMm) metrics.faceWidthMm = 142;
+                if (!metrics.faceHeightMm) metrics.faceHeightMm = 188;
+                if (!metrics.ipd) metrics.ipd = metrics.pd;
+                if (!metrics.npc) metrics.npc = '59 mm';
+                
+                // store globally
                 Object.assign(analysisData, metrics);
                 
                 // update UI
-                document.getElementById('out-age').innerHTML = `${metrics.age || '--'}`;
-                document.getElementById('out-gender').innerHTML = metrics.gender || '';
-                document.getElementById('out-size').innerText = metrics.frameSize || '--';
-                document.getElementById('out-shape').innerText = metrics.faceShape || '--';
-                document.getElementById('out-pd').innerText = metrics.pd || '--';
-                document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation || 'Wayfarer'}`;
+                document.getElementById('out-age').innerHTML = metrics.age;
+                document.getElementById('out-gender').innerHTML = metrics.gender;
+                document.getElementById('out-size').innerText = metrics.frameSize;
+                document.getElementById('out-shape').innerText = metrics.faceShape;
+                document.getElementById('out-pd').innerText = metrics.pd;
+                document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation}`;
                 
                 // thumbnail
                 if (resultThumb) {
@@ -555,7 +564,7 @@
                 showScreen('results');
             };
 
-            // ---------- 5. SUBMIT TO GOOGLE APPS SCRIPT (all fields) ----------
+            // ---------- 5. SUBMIT TO GOOGLE APPS SCRIPT ----------
             document.getElementById('final-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const submitBtn = document.getElementById('btn-submit');
@@ -567,7 +576,6 @@
                     phone: document.getElementById('in-phone').value,
                     ward: document.getElementById('in-ward').value || '—',
                     power: document.getElementById('in-power').value || '—',
-                    // all biometrics
                     age: analysisData.age || '--',
                     ageConfidence: analysisData.ageConfidence || 0.9,
                     gender: analysisData.gender || '--',
@@ -653,7 +661,7 @@
             window.closeForm = () => document.getElementById('modal-form').classList.add('state-hidden');
             document.getElementById('btn-open-form').onclick = window.openForm;
 
-            // ---------- BOOT ----------
+            // BOOT
             loadFaceModels();
         })();
     </script>
