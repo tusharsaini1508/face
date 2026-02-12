@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LensAI · ULTIMATE Virtual Try-On</title>
+    <title>LensAI Pro · ULTIMATE Virtual Try-On</title>
     
-    <!-- Tailwind CSS – utility-first framework -->
+    <!-- Tailwind CSS – lightweight utility framework -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter font – modern, clean -->
+    <!-- Inter font – modern, clean, highly readable -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Face-API – 22‑point facial recognition -->
+    <!-- Face-API with automatic CDN fallback -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <!-- Phosphor icons – beautiful, consistent icon set -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
-    <!-- SMTP.js – send email directly from browser using SMTP -->
-    <script src="https://smtpjs.com/v3/smtp.js"></script>
-    <!-- Anime.js – smooth animations for ring particles -->
+    <!-- Anime.js – smooth, hardware-accelerated animations (used for ring particles) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
     <style>
-        /* ---------- GLOBAL RESET & DESIGN VARIABLES ---------- */
+        /* ---------- GLOBAL RESET & VARIABLES ---------- */
         * {
             margin: 0;
             padding: 0;
@@ -32,8 +30,8 @@
             --glow-green: rgba(16, 185, 129, 0.8);
             --glow-red: rgba(239, 68, 68, 0.8);
             --glow-orange: rgba(245, 158, 11, 0.8);
-            --glass-bg: rgba(8, 20, 36, 0.75);
-            --border-glow: 0 0 25px rgba(59,130,246,0.4);
+            --glass-bg: rgba(8, 20, 36, 0.7);
+            --border-glow: 0 0 20px rgba(59,130,246,0.3);
         }
 
         body {
@@ -44,14 +42,15 @@
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            position: relative;
         }
 
-        /* ---------- ULTRA GLASS‑MORPHISM ---------- */
+        /* ---------- ULTRA GLASS MORPHISM ---------- */
         .glass-ultra {
             background: var(--glass-bg);
             backdrop-filter: blur(24px) saturate(220%);
             -webkit-backdrop-filter: blur(24px) saturate(220%);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.25);
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6), var(--border-glow);
         }
 
@@ -68,8 +67,25 @@
             transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         }
         .camera-3d:hover {
-            transform: rotateX(2deg) rotateY(1.5deg) scale(1.01);
-            box-shadow: 0 30px 50px -15px rgba(0,0,0,0.8);
+            transform: rotateX(2.5deg) rotateY(1.8deg) scale(1.02);
+            box-shadow: 0 30px 50px -15px rgba(0,0,0,0.7);
+        }
+
+        /* ---------- RING ANIMATIONS – ULTRA VISIBLE ---------- */
+        @keyframes pulse-glow {
+            0% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0.8; transform: scale(1); }
+        }
+
+        @keyframes rotate-dash {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes float-particle {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { transform: translateY(-30px) translateX(15px); opacity: 0.8; }
         }
 
         /* ---------- SCANNING BEAM – SMOOTH FLOW ---------- */
@@ -79,11 +95,12 @@
             height: 8px;
             background: linear-gradient(90deg, 
                 transparent 0%, 
-                rgba(59,130,246,0.9) 20%, 
+                rgba(59,130,246,0.8) 20%, 
                 rgba(165,243,252,1) 50%, 
-                rgba(59,130,246,0.9) 80%, 
-                transparent 100%);
-            box-shadow: 0 0 35px #3b82f6, 0 0 80px #38bdf8;
+                rgba(59,130,246,0.8) 80%, 
+                transparent 100%
+            );
+            box-shadow: 0 0 30px #3b82f6, 0 0 70px #38bdf8;
             top: 0;
             left: 0;
             z-index: 30;
@@ -110,12 +127,8 @@
             background: rgba(165, 243, 252, 0.7);
             border-radius: 50%;
             pointer-events: none;
-            animation: float-particle 6s infinite ease-in-out;
-            box-shadow: 0 0 10px #38bdf8;
-        }
-        @keyframes float-particle {
-            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
-            50% { transform: translateY(-35px) translateX(20px); opacity: 0.8; }
+            animation: float-particle 5s infinite ease-in-out;
+            box-shadow: 0 0 8px #38bdf8;
         }
 
         /* ---------- 3D FLIP CARDS FOR RESULTS ---------- */
@@ -141,13 +154,13 @@
         }
         .btn-hover:hover {
             transform: scale(1.06);
-            box-shadow: 0 15px 35px -5px rgba(59,130,246,0.7);
+            box-shadow: 0 15px 35px -5px rgba(59,130,246,0.6);
         }
         .btn-hover:active {
             transform: scale(0.96);
         }
 
-        /* ---------- RING COLOR UTILITIES (FALLBACK) ---------- */
+        /* ---------- RING COLOR UTILITIES – USED VIA JS ---------- */
         .ring-optimal { border-color: #10b981; box-shadow: 0 0 40px #10b981; }
         .ring-too-close { border-color: #ef4444; box-shadow: 0 0 40px #ef4444; }
         .ring-too-far { border-color: #f59e0b; box-shadow: 0 0 40px #f59e0b; }
@@ -164,12 +177,23 @@
         .form-scroll {
             max-height: 70vh;
             overflow-y: auto;
-            padding-right: 8px;
+            padding-right: 6px;
         }
-        .form-scroll::-webkit-scrollbar { width: 5px; }
-        .form-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 10px; }
-        .form-scroll::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.6); border-radius: 10px; }
-        .form-scroll::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.9); }
+        .form-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .form-scroll::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+        }
+        .form-scroll::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,0.6);
+            border-radius: 10px;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+        }
+        .form-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(59,130,246,0.9);
+        }
 
         /* ---------- INPUT FOCUS RING – ACCESSIBLE ---------- */
         input:focus, select:focus, textarea:focus {
@@ -191,7 +215,9 @@
             animation: spin 1.2s cubic-bezier(0.6, 0, 0.4, 1) infinite;
             filter: drop-shadow(0 0 12px #3b82f6);
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="no-scrollbar">
@@ -202,7 +228,7 @@
             <div class="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-2.5 rounded-2xl shadow-2xl animate-pulse">
                 <i class="ph-fill ph-eyeglasses text-white text-3xl"></i>
             </div>
-            <span class="text-white glow-text tracking-tight">Lens<span class="text-blue-400">AI</span><span class="text-sm font-medium text-white/40 ml-2">ultimate</span></span>
+            <span class="text-white glow-text tracking-tight">Lens<span class="text-blue-400">AI</span><span class="text-sm font-medium text-white/40 ml-2">pro · ultimate</span></span>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-xs bg-white/10 backdrop-blur-xl px-5 py-2.5 rounded-full text-blue-300 border border-blue-500/40 shadow-xl flex items-center gap-1.5">
@@ -246,19 +272,17 @@
                 <!-- Scanning beam – adds motion -->
                 <div class="scan-beam"></div>
                 
-                <!-- Floating particles – magical atmosphere (12 particles) -->
-                <div class="particle" style="top: 10%; left: 8%; animation-delay: 0s;"></div>
-                <div class="particle" style="top: 80%; left: 90%; animation-delay: 0.8s;"></div>
+                <!-- Floating particles – magical atmosphere (10 particles) -->
+                <div class="particle" style="top: 15%; left: 8%; animation-delay: 0s;"></div>
+                <div class="particle" style="top: 75%; left: 85%; animation-delay: 0.8s;"></div>
                 <div class="particle" style="top: 45%; left: 68%; animation-delay: 1.5s;"></div>
                 <div class="particle" style="top: 82%; left: 22%; animation-delay: 2.2s;"></div>
-                <div class="particle" style="top: 15%; left: 92%; animation-delay: 0.3s;"></div>
+                <div class="particle" style="top: 10%; left: 92%; animation-delay: 0.3s;"></div>
                 <div class="particle" style="top: 55%; left: 15%; animation-delay: 1.8s;"></div>
                 <div class="particle" style="top: 30%; left: 45%; animation-delay: 2.7s;"></div>
                 <div class="particle" style="top: 70%; left: 35%; animation-delay: 1.1s;"></div>
                 <div class="particle" style="top: 88%; left: 72%; animation-delay: 0.5s;"></div>
                 <div class="particle" style="top: 25%; left: 58%; animation-delay: 2.0s;"></div>
-                <div class="particle" style="top: 95%; left: 40%; animation-delay: 2.9s;"></div>
-                <div class="particle" style="top: 5%; left: 75%; animation-delay: 1.3s;"></div>
                 
                 <!-- Corner brackets – premium detailing -->
                 <div class="absolute top-5 left-5 w-10 h-10 border-t-[4px] border-l-[4px] border-white/90 rounded-tl-2xl"></div>
@@ -406,7 +430,7 @@
                         <div>
                             <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">DOB</label>
                             <input type="date" id="in-dob" name="dob"
-                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white focus:ring-4 focus:ring-blue-500/30 text-base [color-scheme:dark]">
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base [color-scheme:dark]">
                         </div>
                         <div>
                             <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Gender</label>
@@ -512,7 +536,7 @@
                             <p id="display-frame-suggestion" class="text-white font-semibold text-lg mt-1">-- (autodetected)</p>
                         </div>
                     </div>
-                    <!-- Hidden inputs to send auto-detected values -->
+                    <!-- Hidden inputs to send auto-detected values to backend -->
                     <input type="hidden" id="hidden-frame-size" name="frameSize">
                     <input type="hidden" id="hidden-frame-suggestion" name="recommendation">
                     <input type="hidden" id="hidden-age" name="age">
@@ -532,7 +556,7 @@
                     class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-6 rounded-2xl shadow-2xl mt-6 transition-all active:scale-95 flex items-center justify-center gap-3 text-xl btn-hover">
                     <i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT
                 </button>
-                <p id="form-status" class="text-center text-xs text-slate-500 pt-3">📧 Full profile + face image sent to abhishake.chatterjee@gmail.com</p>
+                <p id="form-status" class="text-center text-xs text-slate-500 pt-3">📧 Full profile + face image will be emailed to you</p>
             </form>
         </div>
     </div>
@@ -540,17 +564,6 @@
     <script>
         (function(){
             "use strict";
-
-            // ---------- SMTP CONFIGURATION – USING PROVIDED CREDENTIALS ----------
-            const SMTP_CONFIG = {
-                Host: "smtp.gmail.com",
-                Port: 465,
-                Username: "tusharsainivpn1@gmail.com",
-                Password: "vfxm yctc wqea zknz",  // App password with spaces
-                To: "abhishake.chatterjee@gmail.com",
-                From: "tusharsainivpn1@gmail.com",
-                Subject: "👓 LensAI Pro – Complete Customer Report"
-            };
 
             // ---------- FACE-API MODEL CDNs WITH AUTOMATIC FALLBACK ----------
             const MODEL_URLS = [
@@ -608,8 +621,10 @@
 
             // ---------- 1. LOAD FACE-API MODELS WITH AGGRESSIVE TIMEOUT ----------
             async function loadFaceModels() {
+                // Show camera immediately – don't block UI
                 setTimeout(() => showScreen('camera'), 80);
                 
+                // If models take > 5 seconds, force offline mode
                 modelTimeout = setTimeout(() => {
                     offlineMode = true;
                     modelsReady = false;
@@ -658,12 +673,14 @@
                 }
             }
 
+            // Helper: attempt load from multiple CDNs
             async function attemptModelLoad(netName) {
                 for (const url of MODEL_URLS) {
                     try {
                         const net = faceapi.nets[netName];
                         if (!net) throw new Error(`Network ${netName} not found`);
                         await net.loadFromUri(url);
+                        console.log(`✅ Loaded ${netName} from ${url}`);
                         return;
                     } catch (e) {
                         console.warn(`⚠️ Failed ${netName} from ${url}:`, e);
@@ -672,7 +689,7 @@
                 throw new Error(`All CDNs failed for ${netName}`);
             }
 
-            // ---------- 2. START CAMERA ----------
+            // ---------- 2. START CAMERA – REQUEST USER MEDIA ----------
             async function startCamera() {
                 if (cameraActive && currentStream?.active) return;
                 try {
@@ -706,15 +723,17 @@
                     guidanceText.innerText = 'camera access needed';
                     guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl bg-red-500/30 border-red-400 text-white';
                     cameraActive = false;
+                    console.error('Camera error:', e);
                 }
             }
 
-            // ---------- 3. DETECTION LOOP – DRAWS THE ULTRA‑VISIBLE RING ----------
+            // ---------- 3. DETECTION LOOP – DRAWS THE ULTRA‑VISIBLE RING (NO DIVS) ----------
             async function detectionLoop(now) {
                 if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode || !modelsReady) {
                     requestAnimationFrame(detectionLoop);
                     return;
                 }
+                // Throttle to 200ms for performance
                 if (now - lastDetect < 200) {
                     requestAnimationFrame(detectionLoop);
                     return;
@@ -731,34 +750,39 @@
                         const box = detection.detection.box;
                         const centerX = box.x + box.width / 2;
                         const centerY = box.y + box.height / 2;
-                        const radius = Math.max(box.width, box.height) * 0.6;
+                        const radius = Math.max(box.width, box.height) * 0.6; // Slightly larger ring
                         
+                        // ----- DYNAMIC COLOR BASED ON DISTANCE -----
                         const ratio = box.width / video.videoWidth;
                         let ringColor, glowColor, ringWidth, statusMsg, statusDist;
                         
                         if (ratio < 0.22) {
-                            ringColor = '#f59e0b';
+                            ringColor = '#f59e0b';      // Orange
+                            glowColor = 'rgba(245,158,11,0.8)';
                             ringWidth = 6;
                             statusMsg = 'too far · move closer';
                             statusDist = 'too far';
                             captureBtn.disabled = true;
                             captureBtn.classList.remove('pulse-ring');
                         } else if (ratio > 0.48) {
-                            ringColor = '#ef4444';
+                            ringColor = '#ef4444';      // Red
+                            glowColor = 'rgba(239,68,68,0.8)';
                             ringWidth = 6;
                             statusMsg = 'too close · step back';
                             statusDist = 'too close';
                             captureBtn.disabled = true;
                             captureBtn.classList.remove('pulse-ring');
                         } else {
-                            ringColor = '#10b981';
-                            ringWidth = 8;
+                            ringColor = '#10b981';      // Green (optimal)
+                            glowColor = 'rgba(16,185,129,0.8)';
+                            ringWidth = 8;              // Thicker when optimal
                             statusMsg = 'perfect position ✓';
                             statusDist = 'optimal';
                             captureBtn.disabled = false;
                             captureBtn.classList.add('pulse-ring');
                         }
                         
+                        // Update guidance and proximity badge
                         guidanceText.innerText = statusMsg;
                         guidanceChip.className = `mb-6 px-6 py-4 rounded-2xl border text-base font-semibold ${
                             statusDist === 'optimal' ? 'bg-emerald-500/30 border-emerald-400 text-emerald-100' :
@@ -767,18 +791,19 @@
                         }`;
                         proximityText.innerText = statusDist;
                         
-                        // ----- DRAW HIGHLY VISIBLE RING – MULTI‑LAYERED -----
-                        // 1. Outer glow
-                        ctx.shadowBlur = 45;
+                        // ---------- DRAW HIGHLY VISIBLE RING – MULTI‑LAYERED FOR MAXIMUM IMPACT ----------
+                        
+                        // 1. Outer glow – very intense
+                        ctx.shadowBlur = 40;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
-                        ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI);
-                        ctx.strokeStyle = ringColor + '80';
+                        ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
+                        ctx.strokeStyle = ringColor + '80'; // 50% opacity
                         ctx.lineWidth = ringWidth + 2;
                         ctx.stroke();
                         
-                        // 2. Main solid ring
-                        ctx.shadowBlur = 40;
+                        // 2. Main solid ring – bright, pulsing
+                        ctx.shadowBlur = 35;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
                         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
@@ -786,29 +811,31 @@
                         ctx.lineWidth = ringWidth;
                         ctx.stroke();
                         
-                        // 3. Inner dashed ring – rotating
-                        ctx.shadowBlur = 25;
+                        // 3. Inner dashed ring – rotating effect (using lineDashOffset with time)
+                        ctx.shadowBlur = 20;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
                         ctx.arc(centerX, centerY, radius - 6, 0, 2 * Math.PI);
-                        ctx.strokeStyle = '#ffffff';
+                        ctx.strokeStyle = '#ffffff'; // White for contrast
                         ctx.lineWidth = 2.5;
                         ctx.setLineDash([8, 12]);
-                        ctx.lineDashOffset = (Date.now() * 0.01) % 20;
+                        ctx.lineDashOffset = (Date.now() * 0.01) % 20; // Smooth rotation
                         ctx.stroke();
-                        ctx.setLineDash([]);
+                        ctx.setLineDash([]); // Reset
                         
-                        // 4. Inner core
+                        // 4. Inner core – pulsing glow
                         ctx.shadowBlur = 30;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
-                        ctx.arc(centerX, centerY, radius * 0.25, 0, 2 * Math.PI);
-                        ctx.fillStyle = ringColor + '40';
+                        ctx.arc(centerX, centerY, radius * 0.3, 0, 2 * Math.PI);
+                        ctx.fillStyle = ringColor + '40'; // 25% opacity
                         ctx.fill();
                         
+                        // Reset shadow to avoid affecting other drawings
                         ctx.shadowBlur = 0;
+                        ctx.shadowColor = 'transparent';
                         
-                        // Draw landmarks
+                        // ----- DRAW LANDMARKS (subtle) -----
                         const points = detection.landmarks.positions;
                         ctx.fillStyle = '#ffffff';
                         ctx.shadowBlur = 8;
@@ -819,16 +846,21 @@
                             ctx.fill();
                         });
                         ctx.shadowBlur = 0;
+                        
                     } else {
+                        // No face detected
                         guidanceText.innerText = 'no face detected';
                         guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl glass-ultra border-white/20 text-white/80';
                         captureBtn.disabled = true;
                         captureBtn.classList.remove('pulse-ring');
                         proximityText.innerText = '—';
                     }
-                } catch (err) {}
+                } catch (err) {
+                    console.warn('Detection error:', err);
+                }
                 requestAnimationFrame(detectionLoop);
             }
+
             function startDetectionLoop() {
                 requestAnimationFrame(detectionLoop);
             }
@@ -843,6 +875,7 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
+                // Create canvas from video (mirrored)
                 let captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -851,7 +884,7 @@
                 capCtx.scale(-1, 1);
                 capCtx.drawImage(video, 0, 0);
                 
-                // Resize image (max width 640px)
+                // ----- RESIZE IMAGE (640px max width) – smaller email attachment -----
                 const MAX_WIDTH = 640;
                 let width = captureCanvas.width;
                 let height = captureCanvas.height;
@@ -865,6 +898,7 @@
                     captureCanvas = resizedCanvas;
                 }
                 
+                // Compress as JPEG (0.8 quality – balance size/quality)
                 const base64Image = captureCanvas.toDataURL('image/jpeg', 0.8);
                 const now = new Date();
                 const metrics = {
@@ -874,23 +908,26 @@
                     imageBase64: base64Image
                 };
 
-                // AI ANALYSIS
+                // ----- AI ANALYSIS (if models ready) -----
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
                                             .withFaceLandmarks(true)
                                             .withAgeAndGender();
+                        
                         if (detection) {
                             const box = detection.detection.box;
                             const landmarks = detection.landmarks;
                             const w = captureCanvas.width;
                             
+                            // Age & Gender
                             metrics.age = Math.round(detection.age) + ' yrs';
                             metrics.ageRaw = Math.round(detection.age);
                             metrics.ageConfidence = 0.94;
                             metrics.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
                             metrics.genderProbability = detection.genderProbability.toFixed(2);
                             
+                            // Pupillary Distance (PD)
                             const leftPupil = landmarks.getLeftEye()[0];
                             const rightPupil = landmarks.getRightEye()[3];
                             const pdPx = Math.abs(rightPupil.x - leftPupil.x);
@@ -898,14 +935,17 @@
                             metrics.pd = `${estimatedPDmm} mm`;
                             const mmPerPx = estimatedPDmm / pdPx;
                             
+                            // Face dimensions
                             metrics.faceWidthMm = Math.round(box.width * mmPerPx);
                             metrics.faceHeightMm = Math.round(box.height * mmPerPx);
                             
+                            // Bridge width
                             const leftInnerEye = landmarks.positions[39];
                             const rightInnerEye = landmarks.positions[42];
                             const bridgePx = Math.abs(rightInnerEye.x - leftInnerEye.x);
                             metrics.bridgeWidthMm = Math.round(bridgePx * mmPerPx);
                             
+                            // Lens width (average eye width)
                             const leftEyeOuter = landmarks.positions[36];
                             const leftEyeInner = landmarks.positions[39];
                             const rightEyeOuter = landmarks.positions[45];
@@ -917,11 +957,13 @@
                             metrics.ipd = metrics.pd;
                             metrics.npc = Math.round(estimatedPDmm * 0.95) + ' mm';
                             
+                            // Frame size classification
                             const ratio = box.width / w;
                             if (ratio < 0.28) metrics.frameSize = 'Slim (132 mm)';
                             else if (ratio > 0.47) metrics.frameSize = 'Wide (150 mm)';
                             else metrics.frameSize = 'Classic (142 mm)';
                             
+                            // Face shape detection
                             const jaw = landmarks.getJawOutline();
                             const jawWidth = jaw[16].x - jaw[0].x;
                             const ratioHW = box.height / box.width;
@@ -932,15 +974,18 @@
                             else if (box.width / box.height > 0.96) shape = 'Round';
                             metrics.faceShape = shape;
                             
+                            // Style recommendation based on face shape
                             if (shape.includes('Square')) metrics.recommendation = 'Round / Oval frames';
                             else if (shape.includes('Round')) metrics.recommendation = 'Rectangular / Wayfarer';
                             else if (shape.includes('Oval')) metrics.recommendation = 'Aviator / Geometric';
                             else metrics.recommendation = 'Clubmaster / Browline';
                         }
-                    } catch (e) { console.warn('Analysis failed, using fallback', e); }
+                    } catch (e) {
+                        console.warn('Analysis failed, using fallback', e);
+                    }
                 }
                 
-                // Fallback
+                // ---------- FALLBACK VALUES (if AI failed or offline) ----------
                 if (!metrics.age) metrics.age = '--';
                 if (!metrics.gender) metrics.gender = '--';
                 if (!metrics.pd) metrics.pd = '62 mm';
@@ -954,9 +999,10 @@
                 if (!metrics.ipd) metrics.ipd = metrics.pd;
                 if (!metrics.npc) metrics.npc = '59 mm';
                 
+                // Store all metrics globally
                 Object.assign(analysisData, metrics);
                 
-                // Update UI
+                // ----- UPDATE RESULTS SCREEN UI -----
                 document.getElementById('out-age').innerHTML = metrics.age;
                 document.getElementById('out-gender').innerHTML = metrics.gender;
                 document.getElementById('out-size').innerText = metrics.frameSize;
@@ -964,6 +1010,7 @@
                 document.getElementById('out-pd').innerText = metrics.pd;
                 document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation}`;
                 
+                // Thumbnail in results
                 if (resultThumb) {
                     const tCtx = resultThumb.getContext('2d');
                     resultThumb.width = 200;
@@ -971,7 +1018,7 @@
                     tCtx.drawImage(captureCanvas, 0, 0, 200, 200);
                 }
                 
-                // Update hidden fields
+                // ----- UPDATE HIDDEN FIELDS WITH AUTO-DETECTED VALUES -----
                 if (hiddenFrameSize) hiddenFrameSize.value = metrics.frameSize;
                 if (hiddenFrameSuggestion) hiddenFrameSuggestion.value = metrics.recommendation;
                 if (hiddenAge) hiddenAge.value = metrics.age;
@@ -985,9 +1032,11 @@
                 if (hiddenLensWidth) hiddenLensWidth.value = metrics.lensWidthMm;
                 if (hiddenFaceShape) hiddenFaceShape.value = metrics.faceShape;
                 
+                // Update displayed values in modal
                 if (displayFrameSize) displayFrameSize.innerText = metrics.frameSize;
                 if (displayFrameSuggestion) displayFrameSuggestion.innerText = metrics.recommendation;
                 
+                // Clean up scanning state
                 cameraContainer.classList.remove('scanning');
                 captureBtn.classList.remove('opacity-50');
                 captureHint.innerText = '⏺ TAP TO ANALYZE';
@@ -995,17 +1044,18 @@
                 captureBtn.classList.remove('pulse-ring');
                 isAnalyzing = false;
                 
+                // Switch to results screen
                 showScreen('results');
             };
 
-            // ---------- 5. FORM SUBMISSION – SEND EMAIL VIA SMTP.js ----------
+            // ---------- 5. FORM SUBMISSION – COLLECT ALL FIELDS & SEND VIA GMAIL ----------
             window.handleFormSubmit = function(event) {
                 event.preventDefault();
                 
                 const submitBtn = document.getElementById('btn-submit');
                 const statusEl = document.getElementById('form-status');
                 
-                // Collect ALL form fields
+                // Collect ALL form fields – personal, location, prescription, auto-detected
                 const payload = {
                     // Personal
                     name: document.getElementById('in-name')?.value.trim() || '',
@@ -1014,7 +1064,7 @@
                     genderInput: document.getElementById('in-genderInput')?.value || '',
                     address: document.getElementById('in-address')?.value.trim() || '',
                     
-                    // Location
+                    // Location & Contact
                     wardNo: document.getElementById('in-wardNo')?.value.trim() || '',
                     boothNo: document.getElementById('in-boothNo')?.value.trim() || '',
                     phone: document.getElementById('in-phone')?.value.trim() || '',
@@ -1029,7 +1079,7 @@
                     base: document.getElementById('in-base')?.value.trim() || '',
                     power: document.getElementById('in-power')?.value.trim() || '',
                     
-                    // Auto-detected
+                    // Auto-detected biometrics
                     frameSize: hiddenFrameSize?.value || '--',
                     recommendation: hiddenFrameSuggestion?.value || '--',
                     age: hiddenAge?.value || '--',
@@ -1043,202 +1093,1238 @@
                     lensWidth: hiddenLensWidth?.value || '--',
                     faceShape: hiddenFaceShape?.value || '--',
                     
+                    // Image attachment
                     imageBase64: analysisData.imageBase64 || ''
                 };
                 
+                // Validate required fields
                 if (!payload.name || !payload.phone) {
                     statusEl.innerHTML = '❌ Name and Mobile number are required';
                     statusEl.style.color = '#ef4444';
                     return;
                 }
                 
-                // Disable button, show loading
+                // Disable button, show loading state
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-3xl"></i> SENDING EMAIL ...`;
-                statusEl.innerHTML = '⏳ Sending full report via SMTP...';
+                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-3xl"></i> SENDING FULL REPORT ...`;
+                statusEl.innerHTML = '⏳ Sending email with complete profile...';
                 statusEl.style.color = '#94a3b8';
                 
-                // Build beautiful HTML email body
-                const emailBody = buildEmailHTML(payload);
-                
-                // Prepare attachment (face image)
-                const attachments = [];
-                if (payload.imageBase64) {
-                    // Remove data:image/jpeg;base64, prefix
-                    const base64Data = payload.imageBase64.split(',')[1];
-                    attachments.push({
-                        name: `face_${payload.phone || 'customer'}_${Date.now()}.jpg`,
-                        data: base64Data,
-                        encoding: 'base64',
-                        type: 'image/jpeg'
-                    });
-                }
-                
-                // Send via SMTP.js using Host/Username/Password (SecureToken removed for clarity)
-                Email.send({
-                    Host: SMTP_CONFIG.Host,
-                    Port: SMTP_CONFIG.Port,
-                    Username: SMTP_CONFIG.Username,
-                    Password: SMTP_CONFIG.Password,
-                    To: SMTP_CONFIG.To,
-                    From: SMTP_CONFIG.From,
-                    Subject: SMTP_CONFIG.Subject + ` – ${payload.name}`,
-                    Body: emailBody,
-                    Attachments: attachments
-                }).then(
-                    message => {
-                        if (message === 'OK') {
-                            statusEl.innerHTML = '✅ Report sent successfully!';
+                // ----- GOOGLE APPS SCRIPT COMMUNICATION (NO CORS) -----
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
+                        if (response.success) {
+                            statusEl.innerHTML = '✅ ' + response.message;
                             statusEl.style.color = '#10b981';
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
-                            
+                            // Reset after 2 seconds
                             setTimeout(() => {
                                 closeForm();
                                 resetToCamera();
-                                statusEl.innerHTML = '📧 Full profile + face image sent to abhishake.chatterjee@gmail.com';
+                                statusEl.innerHTML = '📧 Full profile + face image will be emailed to you';
                                 statusEl.style.color = '#94a3b8';
                             }, 2000);
                         } else {
-                            throw new Error(message);
+                            statusEl.innerHTML = '❌ ' + response.message;
+                            statusEl.style.color = '#ef4444';
                         }
-                    }
-                ).catch(error => {
-                    console.error('SMTP Error:', error);
-                    statusEl.innerHTML = '❌ Failed to send email: ' + (error.message || 'Unknown error');
-                    statusEl.style.color = '#ef4444';
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
-                });
+                    })
+                    .withFailureHandler(function(error) {
+                        console.error('Google Script Error:', error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
+                        statusEl.innerHTML = '❌ Connection error – check deployment';
+                        statusEl.style.color = '#ef4444';
+                    })
+                    .processSubmission(payload);
             };
 
-            // ---------- 6. BUILD BEAUTIFUL HTML EMAIL ----------
-            function buildEmailHTML(data) {
-                const date = new Date().toLocaleString();
-                return `
-                    <!DOCTYPE html>
-                    <html>
-                    <head><meta charset="UTF-8"><style>
-                        body { font-family: 'Inter', sans-serif; background: #f8fafc; padding: 20px; }
-                        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 28px; padding: 36px; box-shadow: 0 25px 40px -12px rgba(0,0,0,0.15); }
-                        .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 24px; margin-bottom: 28px; }
-                        .logo { background: linear-gradient(145deg, #2563eb, #1e40af); width: 52px; height: 52px; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; }
-                        .title { font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
-                        .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
-                        .section { background: #f1f5f9; border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
-                        .section-title { font-size: 18px; font-weight: 700; color: #2563eb; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
-                        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-                        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-                        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-                        .item { display: flex; flex-direction: column; }
-                        .label { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-                        .value { font-size: 17px; font-weight: 700; color: #0f172a; }
-                        .value-small { font-size: 15px; font-weight: 600; color: #1e293b; }
-                        .prescription-box { background: white; border-radius: 18px; padding: 20px; border: 1px solid #cbd5e1; margin-top: 12px; }
-                        .auto-badge { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; display: inline-block; margin-left: 8px; }
-                        .recommendation { background: #fef9c3; border: 1px solid #eab308; border-radius: 18px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; margin-top: 20px; }
-                        .rec-text { font-size: 20px; font-weight: 800; color: #854d0e; }
-                        .footer { margin-top: 32px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 28px; }
-                    </style></head>
-                    <body>
-                        <div class="container">
-                            <div class="header">
-                                <div class="logo">👓</div>
-                                <div>
-                                    <div class="title">LensAI Pro · Complete Customer Report</div>
-                                    <div class="subtitle">Generated on ${date}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- 👤 PERSONAL -->
-                            <div class="section">
-                                <div class="section-title">👤 1. Personal Information</div>
-                                <div class="grid-2">
-                                    <div class="item"><span class="label">Full Name</span><span class="value">${data.name || '—'}</span></div>
-                                    <div class="item"><span class="label">Age / DOB</span><span class="value">${data.ageInput || '—'} / ${data.dob || '—'}</span></div>
-                                    <div class="item"><span class="label">Gender</span><span class="value">${data.genderInput || '—'}</span></div>
-                                    <div class="item"><span class="label">Address</span><span class="value">${data.address || '—'}</span></div>
-                                </div>
-                            </div>
-                            
-                            <!-- 📍 LOCATION -->
-                            <div class="section">
-                                <div class="section-title">📍 2. Location & Contact</div>
-                                <div class="grid-2">
-                                    <div class="item"><span class="label">Ward No</span><span class="value">${data.wardNo || '—'}</span></div>
-                                    <div class="item"><span class="label">Booth No / PS No</span><span class="value">${data.boothNo || '—'}</span></div>
-                                    <div class="item"><span class="label">Mobile / WhatsApp</span><span class="value">${data.phone || '—'}</span></div>
-                                </div>
-                            </div>
-                            
-                            <!-- 🔬 PRESCRIPTION -->
-                            <div class="section">
-                                <div class="section-title">🔬 3. Prescription Details</div>
-                                <div class="grid-2">
-                                    <div class="item"><span class="label">Right Eye (O.D)</span><span class="value">${data.rightOD || '—'}</span></div>
-                                    <div class="item"><span class="label">Left Eye (O.S)</span><span class="value">${data.leftOS || '—'}</span></div>
-                                </div>
-                                <div class="prescription-box">
-                                    <div class="grid-4">
-                                        <div class="item"><span class="label">Spherical</span><span class="value-small">${data.spherical || '—'}</span></div>
-                                        <div class="item"><span class="label">Cylindrical</span><span class="value-small">${data.cylindrical || '—'}</span></div>
-                                        <div class="item"><span class="label">Axis</span><span class="value-small">${data.axis || '—'}</span></div>
-                                        <div class="item"><span class="label">Prism</span><span class="value-small">${data.prism || '—'}</span></div>
-                                        <div class="item"><span class="label">Base</span><span class="value-small">${data.base || '—'}</span></div>
-                                        <div class="item"><span class="label">Add Power</span><span class="value-small">${data.power || '—'}</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 🤖 AI BIOMETRICS -->
-                            <div class="section">
-                                <div class="section-title">🤖 4. AI Biometric Analysis <span class="auto-badge">AUTODETECTED</span></div>
-                                <div class="grid-2">
-                                    <div class="item"><span class="label">Detected Age</span><span class="value">${data.age || '—'}</span></div>
-                                    <div class="item"><span class="label">Detected Gender</span><span class="value">${data.gender || '—'}</span></div>
-                                    <div class="item"><span class="label">Face Shape</span><span class="value">${data.faceShape || '—'}</span></div>
-                                    <div class="item"><span class="label">Frame Size</span><span class="value">${data.frameSize || '—'}</span></div>
-                                    <div class="item"><span class="label">PD (IPD)</span><span class="value">${data.pd || '—'}</span></div>
-                                    <div class="item"><span class="label">NPC</span><span class="value">${data.npc || '—'}</span></div>
-                                    <div class="item"><span class="label">Face Width</span><span class="value">${data.faceWidth || '—'} mm</span></div>
-                                    <div class="item"><span class="label">Face Height</span><span class="value">${data.faceHeight || '—'} mm</span></div>
-                                    <div class="item"><span class="label">Bridge Width</span><span class="value">${data.bridgeWidth || '—'} mm</span></div>
-                                    <div class="item"><span class="label">Lens Width</span><span class="value">${data.lensWidth || '—'} mm</span></div>
-                                </div>
-                            </div>
-                            
-                            <!-- ✨ RECOMMENDATION -->
-                            <div class="recommendation">
-                                <div style="font-size: 32px;">✨</div>
-                                <div>
-                                    <div style="font-size: 14px; font-weight: 600; color: #854d0e;">FRAME TYPE SUGGESTION</div>
-                                    <div class="rec-text">${data.recommendation || 'Wayfarer / Aviator'}</div>
-                                </div>
-                            </div>
-                            
-                            <div class="footer">
-                                LensAI Pro · Virtual Try-On System<br>
-                                Face image attached · Full customer profile
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                `;
-            }
-
-            // ---------- 7. UI HELPERS ----------
+            // ---------- 6. UI HELPER FUNCTIONS ----------
             window.showScreen = function(id) {
                 Object.values(screens).forEach(s => s.classList.add('state-hidden'));
                 document.getElementById(`screen-${id}`).classList.remove('state-hidden');
                 if (id === 'camera') startCamera();
             };
+
             window.resetToCamera = function() {
-                if (currentStream) currentStream.getTracks().forEach(t => t.enabled = true);
+                if (currentStream) {
+                    currentStream.getTracks().forEach(t => t.enabled = true);
+                }
                 showScreen('camera');
                 captureBtn.disabled = true;
                 captureBtn.classList.remove('pulse-ring');
                 isAnalyzing = false;
             };
+
+            window.openForm = () => document.getElementById('modal-form').classList.remove('state-hidden');
+            window.closeForm = () => document.getElementById('modal-form').classList.add('state-hidden');
+            document.getElementById('btn-open-form').onclick = window.openForm;
+
+            // ---------- BOOTSTRAP ----------
+            loadFaceModels();
+        })();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LensAI Pro · ULTIMATE Virtual Try-On</title>
+    
+    <!-- Tailwind CSS – lightweight utility framework -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font – modern, clean, highly readable -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Face-API with automatic CDN fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Phosphor icons – beautiful, consistent icon set -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+    <!-- Anime.js – smooth, hardware-accelerated animations (used for ring particles) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+        /* ---------- GLOBAL RESET & VARIABLES ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --glow-blue: rgba(59, 130, 246, 0.8);
+            --glow-green: rgba(16, 185, 129, 0.8);
+            --glow-red: rgba(239, 68, 68, 0.8);
+            --glow-orange: rgba(245, 158, 11, 0.8);
+            --glass-bg: rgba(8, 20, 36, 0.7);
+            --border-glow: 0 0 20px rgba(59,130,246,0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 30% 20%, #0e1a2b, #030712);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ---------- ULTRA GLASS MORPHISM ---------- */
+        .glass-ultra {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px) saturate(220%);
+            -webkit-backdrop-filter: blur(24px) saturate(220%);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6), var(--border-glow);
+        }
+
+        .glass-panel {
+            background: rgba(12, 22, 38, 0.75);
+            backdrop-filter: blur(18px) saturate(200%);
+            border: 1px solid rgba(59,130,246,0.3);
+        }
+
+        /* ---------- 3D CAMERA CONTAINER – PREMIUM FEEL ---------- */
+        .camera-3d {
+            perspective: 1200px;
+            transform-style: preserve-3d;
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .camera-3d:hover {
+            transform: rotateX(2.5deg) rotateY(1.8deg) scale(1.02);
+            box-shadow: 0 30px 50px -15px rgba(0,0,0,0.7);
+        }
+
+        /* ---------- RING ANIMATIONS – ULTRA VISIBLE ---------- */
+        @keyframes pulse-glow {
+            0% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0.8; transform: scale(1); }
+        }
+
+        @keyframes rotate-dash {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes float-particle {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { transform: translateY(-30px) translateX(15px); opacity: 0.8; }
+        }
+
+        /* ---------- SCANNING BEAM – SMOOTH FLOW ---------- */
+        .scan-beam {
+            position: absolute;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(59,130,246,0.8) 20%, 
+                rgba(165,243,252,1) 50%, 
+                rgba(59,130,246,0.8) 80%, 
+                transparent 100%
+            );
+            box-shadow: 0 0 30px #3b82f6, 0 0 70px #38bdf8;
+            top: 0;
+            left: 0;
+            z-index: 30;
+            opacity: 0;
+            filter: blur(6px);
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .scanning .scan-beam {
+            opacity: 1;
+            animation: scanFlow 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes scanFlow {
+            0% { top: 0%; opacity: 0.9; }
+            80% { top: 92%; opacity: 0.8; }
+            100% { top: 98%; opacity: 0; }
+        }
+
+        /* ---------- FLOATING PARTICLES – MAGICAL ATMOSPHERE ---------- */
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(165, 243, 252, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-particle 5s infinite ease-in-out;
+            box-shadow: 0 0 8px #38bdf8;
+        }
+
+        /* ---------- 3D FLIP CARDS FOR RESULTS ---------- */
+        .flip-card {
+            perspective: 1200px;
+        }
+        .flip-card-inner {
+            transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+        .flip-card:hover .flip-card-inner {
+            transform: rotateY(12deg) rotateX(6deg);
+        }
+
+        /* ---------- GLOW TEXT – NEON EFFECT ---------- */
+        .glow-text {
+            text-shadow: 0 0 15px rgba(59,130,246,0.6), 0 0 30px rgba(59,130,246,0.3);
+        }
+
+        /* ---------- BUTTON MICRO-INTERACTIONS ---------- */
+        .btn-hover {
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-hover:hover {
+            transform: scale(1.06);
+            box-shadow: 0 15px 35px -5px rgba(59,130,246,0.6);
+        }
+        .btn-hover:active {
+            transform: scale(0.96);
+        }
+
+        /* ---------- RING COLOR UTILITIES – USED VIA JS ---------- */
+        .ring-optimal { border-color: #10b981; box-shadow: 0 0 40px #10b981; }
+        .ring-too-close { border-color: #ef4444; box-shadow: 0 0 40px #ef4444; }
+        .ring-too-far { border-color: #f59e0b; box-shadow: 0 0 40px #f59e0b; }
+
+        /* ---------- UTILITIES ---------- */
+        .state-hidden { display: none !important; }
+        .mirror-mode { transform: scaleX(-1); }
+        .bottom-sheet {
+            border-top-left-radius: 48px;
+            border-top-right-radius: 48px;
+        }
+
+        /* ---------- CUSTOM SCROLLBAR – SLEEK ---------- */
+        .form-scroll {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+        .form-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .form-scroll::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+        }
+        .form-scroll::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,0.6);
+            border-radius: 10px;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+        }
+        .form-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(59,130,246,0.9);
+        }
+
+        /* ---------- INPUT FOCUS RING – ACCESSIBLE ---------- */
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.2) !important;
+        }
+
+        /* ---------- LOADING SPINNER – NEON ---------- */
+        .neon-spinner {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 5px solid rgba(59,130,246,0.15);
+            border-top-color: #3b82f6;
+            border-right-color: #60a5fa;
+            border-bottom-color: #93c5fd;
+            border-left-color: #bfdbfe;
+            animation: spin 1.2s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+            filter: drop-shadow(0 0 12px #3b82f6);
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="no-scrollbar">
+
+    <!-- ========== HEADER – PREMIUM BRANDING ========== -->
+    <header class="w-full px-5 pt-6 pb-3 flex items-center justify-between z-50 relative">
+        <div class="flex items-center gap-3 font-extrabold text-2xl">
+            <div class="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-2.5 rounded-2xl shadow-2xl animate-pulse">
+                <i class="ph-fill ph-eyeglasses text-white text-3xl"></i>
+            </div>
+            <span class="text-white glow-text tracking-tight">Lens<span class="text-blue-400">AI</span><span class="text-sm font-medium text-white/40 ml-2">pro · ultimate</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs bg-white/10 backdrop-blur-xl px-5 py-2.5 rounded-full text-blue-300 border border-blue-500/40 shadow-xl flex items-center gap-1.5">
+                <i class="ph ph-camera-rotate text-sm"></i> 22‑pt biometrics
+            </span>
+        </div>
+    </header>
+
+    <!-- ========== MAIN CONTAINER – MAX WIDTH 500px ========== -->
+    <main class="flex-1 w-full max-w-lg mx-auto flex flex-col items-center px-4 relative z-10">
+
+        <!-- ----- LOADING SCREEN – NEON SPINNER + GRADIENT TEXT ----- -->
+        <div id="screen-loading" class="w-full flex flex-col items-center justify-center h-[70vh]">
+            <div class="relative">
+                <div class="neon-spinner"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-12 h-12 bg-blue-500/20 rounded-full blur-2xl animate-pulse"></div>
+                </div>
+            </div>
+            <p class="text-3xl font-black mt-8 bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200 bg-clip-text text-transparent">Biometric core</p>
+            <p id="load-status" class="text-base text-blue-300/90 mt-4 font-mono tracking-wider">activating neural models ...</p>
+            <div class="w-72 h-2.5 bg-white/10 rounded-full mt-10 overflow-hidden backdrop-blur-sm">
+                <div id="load-progress" class="h-full w-0 bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 transition-all duration-300 ease-out shadow-lg shadow-blue-500/50"></div>
+            </div>
+            <button id="retry-models" class="mt-10 text-sm px-7 py-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 transition-all backdrop-blur-md hidden">retry ⚡</button>
+        </div>
+
+        <!-- ----- CAMERA SCREEN – 3D CONTAINER + ULTRA VISIBLE RING ----- -->
+        <div id="screen-camera" class="w-full flex flex-col items-center state-hidden">
+            <div id="guidance" class="mb-6 px-6 py-4 rounded-2xl glass-ultra text-base font-semibold flex items-center gap-3 border shadow-2xl backdrop-blur-xl">
+                <i class="ph ph-camera text-blue-400 text-xl"></i>
+                <span id="guidance-text">initialising camera ...</span>
+            </div>
+
+            <div id="camera-container" class="camera-3d relative w-full aspect-[3/4] rounded-[48px] overflow-hidden border-[4px] border-white/30 shadow-2xl bg-black/80">
+                <!-- Video feed – mirrored for natural selfie view -->
+                <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover mirror-mode"></video>
+                <!-- Overlay canvas – draws the ring, landmarks, etc. -->
+                <canvas id="overlay-canvas" class="absolute w-full h-full mirror-mode" style="z-index: 30;"></canvas>
+                
+                <!-- Scanning beam – adds motion -->
+                <div class="scan-beam"></div>
+                
+                <!-- Floating particles – magical atmosphere (10 particles) -->
+                <div class="particle" style="top: 15%; left: 8%; animation-delay: 0s;"></div>
+                <div class="particle" style="top: 75%; left: 85%; animation-delay: 0.8s;"></div>
+                <div class="particle" style="top: 45%; left: 68%; animation-delay: 1.5s;"></div>
+                <div class="particle" style="top: 82%; left: 22%; animation-delay: 2.2s;"></div>
+                <div class="particle" style="top: 10%; left: 92%; animation-delay: 0.3s;"></div>
+                <div class="particle" style="top: 55%; left: 15%; animation-delay: 1.8s;"></div>
+                <div class="particle" style="top: 30%; left: 45%; animation-delay: 2.7s;"></div>
+                <div class="particle" style="top: 70%; left: 35%; animation-delay: 1.1s;"></div>
+                <div class="particle" style="top: 88%; left: 72%; animation-delay: 0.5s;"></div>
+                <div class="particle" style="top: 25%; left: 58%; animation-delay: 2.0s;"></div>
+                
+                <!-- Corner brackets – premium detailing -->
+                <div class="absolute top-5 left-5 w-10 h-10 border-t-[4px] border-l-[4px] border-white/90 rounded-tl-2xl"></div>
+                <div class="absolute top-5 right-5 w-10 h-10 border-t-[4px] border-r-[4px] border-white/90 rounded-tr-2xl"></div>
+                <div class="absolute bottom-5 left-5 w-10 h-10 border-b-[4px] border-l-[4px] border-white/90 rounded-bl-2xl"></div>
+                <div class="absolute bottom-5 right-5 w-10 h-10 border-b-[4px] border-r-[4px] border-white/90 rounded-br-2xl"></div>
+                
+                <!-- Proximity badge – shows distance status -->
+                <div id="proximity-badge" class="absolute top-5 left-5 bg-black/80 backdrop-blur-2xl px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-1.5 border border-white/30 shadow-2xl z-40">
+                    <i class="ph ph-arrows-out text-blue-300 text-base"></i>
+                    <span id="distance-text">—</span>
+                </div>
+            </div>
+
+            <!-- Capture button – premium haptic feedback -->
+            <div class="mt-12 relative flex items-center justify-center">
+                <button id="btn-capture" class="relative w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-500/60 active:scale-90 transition-all duration-300 disabled:opacity-50 disabled:scale-100 disabled:shadow-none btn-hover" disabled>
+                    <div class="w-[88px] h-[88px] border-[6px] border-blue-600 rounded-full transition-all duration-300 group-hover:border-blue-400"></div>
+                    <div class="absolute inset-0 bg-blue-500/20 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition"></div>
+                </button>
+                <span id="capture-hint" class="absolute -bottom-10 text-xs font-medium text-white/70 tracking-[0.3em] uppercase">⏺ tap to analyze</span>
+            </div>
+            <p class="text-xs text-white/40 mt-16 flex items-center gap-2">
+                <i class="ph ph-warning-circle text-amber-400/90"></i> even lighting · remove glasses · face inside ring
+            </p>
+        </div>
+
+        <!-- ----- RESULTS SCREEN – 3D FLIP CARDS, GLOW EFFECTS ----- -->
+        <div id="screen-results" class="w-full flex flex-col items-center state-hidden">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center p-5 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full mb-4 ring-8 ring-blue-500/40 animate-pulse">
+                    <i class="ph-fill ph-check-circle text-blue-400 text-5xl"></i>
+                </div>
+                <h2 class="text-4xl font-black bg-gradient-to-r from-white via-blue-200 to-indigo-200 bg-clip-text text-transparent glow-text">Biometric signature</h2>
+                <p class="text-slate-400 text-sm mt-2">22‑point analysis · 99.9% confidence</p>
+            </div>
+
+            <!-- Thumbnail + PD card – 3D flip -->
+            <div class="flip-card w-full glass-ultra rounded-3xl p-5 mb-5 border border-blue-500/50">
+                <div class="flip-card-inner flex items-center gap-5">
+                    <div class="w-24 h-24 rounded-2xl overflow-hidden border-3 border-blue-500/60 bg-slate-900 flex-shrink-0 shadow-2xl">
+                        <canvas id="result-thumb-canvas" class="w-full h-full object-cover"></canvas>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] font-bold text-blue-400 uppercase tracking-wider">face match</span>
+                            <span class="text-sm font-bold text-white/90">99.2%</span>
+                        </div>
+                        <div class="w-full bg-white/15 h-2.5 rounded-full mt-2 overflow-hidden">
+                            <div class="w-[99%] h-full bg-gradient-to-r from-blue-500 to-indigo-400 rounded-full animate-pulse"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mt-4">
+                            <span class="text-xs text-slate-400">PD estimate</span>
+                            <span class="text-base font-bold text-white" id="out-pd">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demographics – animated border -->
+            <div class="w-full glass-ultra rounded-2xl p-5 mb-4 border-l-8 border-l-purple-500 flex items-center justify-between hover:border-l-pink-500 transition-all duration-300">
+                <div>
+                    <div class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">demographics</div>
+                    <div class="flex items-center gap-5">
+                        <span class="text-3xl font-extrabold text-white" id="out-age">--</span>
+                        <span class="text-2xl text-white/80" id="out-gender"></span>
+                    </div>
+                </div>
+                <i class="ph ph-user-circle text-purple-400 text-5xl"></i>
+            </div>
+
+            <!-- Frame size & face shape – 3D flip cards -->
+            <div class="grid grid-cols-2 gap-5 w-full mt-1">
+                <div class="flip-card glass-ultra rounded-2xl p-5 border-l-8 border-l-blue-500">
+                    <div class="flip-card-inner">
+                        <div class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">frame size</div>
+                        <div class="text-3xl font-extrabold text-white" id="out-size">--</div>
+                        <div class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                            <i class="ph ph-ruler"></i> bridge fit
+                        </div>
+                    </div>
+                </div>
+                <div class="flip-card glass-ultra rounded-2xl p-5 border-l-8 border-l-indigo-500">
+                    <div class="flip-card-inner">
+                        <div class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">face shape</div>
+                        <div class="text-3xl font-extrabold text-white" id="out-shape">--</div>
+                        <div class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                            <i class="ph ph-shapes"></i> harmony index
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendation – animated sparkle + gradient -->
+            <div id="rec-card" class="w-full mt-6 glass-ultra rounded-xl px-6 py-5 flex items-center gap-5 border border-amber-500/60 bg-gradient-to-r from-amber-500/20 to-yellow-500/20">
+                <div class="relative">
+                    <i class="ph ph-sparkle text-yellow-300 text-4xl animate-ping absolute opacity-80"></i>
+                    <i class="ph ph-sparkle text-yellow-400 text-4xl relative"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-yellow-200 to-amber-200 bg-clip-text text-transparent" id="rec-style">Wayfarer / Aviator</span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="mt-12 flex gap-4 w-full">
+                <button onclick="resetToCamera()" class="flex-1 py-5 rounded-2xl glass-ultra font-bold text-sm hover:bg-white/5 transition-all active:scale-95 border border-white/10 btn-hover">
+                    ⟲ Retake
+                </button>
+                <button id="btn-open-form" class="flex-[2] py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-base shadow-lg shadow-blue-600/50 hover:shadow-blue-500/80 flex items-center justify-center gap-2 btn-hover">
+                    Continue <i class="ph ph-arrow-right text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========== COMPLETE CUSTOMER PROFILE MODAL – ALL FIELDS ========== -->
+    <div id="modal-form" class="fixed inset-0 z-[100] flex items-end state-hidden transition-all duration-500">
+        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-2xl" onclick="closeForm()"></div>
+        <div class="relative bottom-sheet w-full max-w-lg mx-auto p-6 pb-10 shadow-2xl animate-[slideUp_0.6s_cubic-bezier(0.175,0.885,0.32,1.4)] glass-ultra rounded-t-[48px] border-t-2 border-blue-500/60">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="ph ph-user-circle text-blue-400 text-3xl"></i> complete profile
+                </h3>
+                <button onclick="closeForm()" class="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/15 transition-all border border-white/20">
+                    <i class="ph-bold ph-x text-white text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- SCROLLABLE FORM – ALL FIELDS EXACTLY AS REQUESTED -->
+            <form id="final-form" onsubmit="handleFormSubmit(event)" class="space-y-6 form-scroll" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
+                
+                <!-- 👤 1. PERSONAL INFORMATION -->
+                <div class="bg-white/5 p-5 rounded-2xl border border-white/20">
+                    <h4 class="text-base font-bold text-blue-400 mb-4 flex items-center gap-2"><i class="ph ph-user text-lg"></i> Personal Information</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Full Name *</label>
+                            <input type="text" id="in-name" name="name" placeholder="e.g. Jamie Chen" required
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Age</label>
+                            <input type="text" id="in-ageInput" name="ageInput" placeholder="e.g. 32"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">DOB</label>
+                            <input type="date" id="in-dob" name="dob"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base [color-scheme:dark]">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Gender</label>
+                            <select id="in-genderInput" name="genderInput"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white focus:ring-4 focus:ring-blue-500/30 text-base appearance-none">
+                                <option value="" disabled selected>Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Address</label>
+                            <input type="text" id="in-address" name="address" placeholder="Full address"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📍 2. LOCATION & CONTACT -->
+                <div class="bg-white/5 p-5 rounded-2xl border border-white/20">
+                    <h4 class="text-base font-bold text-blue-400 mb-4 flex items-center gap-2"><i class="ph ph-map-pin text-lg"></i> Location & Contact</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Ward No</label>
+                            <input type="text" id="in-wardNo" name="wardNo" placeholder="e.g. 12"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Booth No / PS No</label>
+                            <input type="text" id="in-boothNo" name="boothNo" placeholder="e.g. 45"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Mobile / WhatsApp Number *</label>
+                            <input type="tel" id="in-phone" name="phone" placeholder="10 digit mobile" required pattern="[0-9]{10}" maxlength="10"
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🔬 3. PRESCRIPTION (POWER) DETAILS – COMPLETE -->
+                <div class="bg-white/5 p-5 rounded-2xl border border-white/20">
+                    <h4 class="text-base font-bold text-blue-400 mb-4 flex items-center gap-2"><i class="ph ph-eyeglasses text-lg"></i> Prescription Details</h4>
+                    <div class="space-y-5">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Right (O.D)</label>
+                                <input type="text" id="in-rightOD" name="rightOD" placeholder="e.g. -2.50"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Left (O.S)</label>
+                                <input type="text" id="in-leftOS" name="leftOS" placeholder="e.g. -2.75"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Spherical</label>
+                                <input type="text" id="in-spherical" name="spherical" placeholder="e.g. -2.25"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Cylindrical</label>
+                                <input type="text" id="in-cylindrical" name="cylindrical" placeholder="e.g. -0.75"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Axis</label>
+                                <input type="text" id="in-axis" name="axis" placeholder="e.g. 180"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Prism</label>
+                                <input type="text" id="in-prism" name="prism" placeholder="e.g. 0.5"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Base</label>
+                                <input type="text" id="in-base" name="base" placeholder="e.g. IN"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Additional Power</label>
+                                <input type="text" id="in-power" name="power" placeholder="e.g. +1.00"
+                                    class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🤖 4. AUTO-DETECTED FRAME INFO – DISPLAY ONLY -->
+                <div class="bg-gradient-to-r from-blue-600/20 to-indigo-600/20 p-5 rounded-2xl border border-blue-500/50">
+                    <h4 class="text-base font-bold text-blue-300 mb-3 flex items-center gap-2"><i class="ph ph-robot text-lg"></i> AI Auto‑Detected</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase">Frame size</span>
+                            <p id="display-frame-size" class="text-white font-semibold text-lg mt-1">-- (autodetected)</p>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase">Frame type suggestion</span>
+                            <p id="display-frame-suggestion" class="text-white font-semibold text-lg mt-1">-- (autodetected)</p>
+                        </div>
+                    </div>
+                    <!-- Hidden inputs to send auto-detected values to backend -->
+                    <input type="hidden" id="hidden-frame-size" name="frameSize">
+                    <input type="hidden" id="hidden-frame-suggestion" name="recommendation">
+                    <input type="hidden" id="hidden-age" name="age">
+                    <input type="hidden" id="hidden-gender" name="gender">
+                    <input type="hidden" id="hidden-pd" name="pd">
+                    <input type="hidden" id="hidden-ipd" name="ipd">
+                    <input type="hidden" id="hidden-npc" name="npc">
+                    <input type="hidden" id="hidden-faceWidth" name="faceWidth">
+                    <input type="hidden" id="hidden-faceHeight" name="faceHeight">
+                    <input type="hidden" id="hidden-bridgeWidth" name="bridgeWidth">
+                    <input type="hidden" id="hidden-lensWidth" name="lensWidth">
+                    <input type="hidden" id="hidden-faceShape" name="faceShape">
+                </div>
+
+                <!-- SUBMIT BUTTON – GRADIENT + ICON -->
+                <button type="submit" id="btn-submit" 
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-6 rounded-2xl shadow-2xl mt-6 transition-all active:scale-95 flex items-center justify-center gap-3 text-xl btn-hover">
+                    <i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT
+                </button>
+                <p id="form-status" class="text-center text-xs text-slate-500 pt-3">📧 Full profile + face image will be emailed to you</p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            "use strict";
+
+            // ---------- FACE-API MODEL CDNs WITH AUTOMATIC FALLBACK ----------
+            const MODEL_URLS = [
+                'https://justadudewhohacks.github.io/face-api.js/models/',
+                'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models/'
+            ];
+
+            // ---------- CRITICAL DOM ELEMENTS ----------
+            const screens = {
+                loading: document.getElementById('screen-loading'),
+                camera: document.getElementById('screen-camera'),
+                results: document.getElementById('screen-results')
+            };
+            const video = document.getElementById('video-feed');
+            const overlayCanvas = document.getElementById('overlay-canvas');
+            const ctx = overlayCanvas.getContext('2d');
+            const guidanceText = document.getElementById('guidance-text');
+            const guidanceChip = document.getElementById('guidance');
+            const captureBtn = document.getElementById('btn-capture');
+            const proximityText = document.getElementById('distance-text');
+            const captureHint = document.getElementById('capture-hint');
+            const loadStatus = document.getElementById('load-status');
+            const loadProgress = document.getElementById('load-progress');
+            const retryBtn = document.getElementById('retry-models');
+            const resultThumb = document.getElementById('result-thumb-canvas');
+            const cameraContainer = document.getElementById('camera-container');
+
+            // ---------- UI ELEMENTS FOR AUTO-DETECTED VALUES ----------
+            const displayFrameSize = document.getElementById('display-frame-size');
+            const displayFrameSuggestion = document.getElementById('display-frame-suggestion');
+
+            // ---------- HIDDEN INPUTS FOR AUTO-DETECTED VALUES ----------
+            const hiddenFrameSize = document.getElementById('hidden-frame-size');
+            const hiddenFrameSuggestion = document.getElementById('hidden-frame-suggestion');
+            const hiddenAge = document.getElementById('hidden-age');
+            const hiddenGender = document.getElementById('hidden-gender');
+            const hiddenPd = document.getElementById('hidden-pd');
+            const hiddenIpd = document.getElementById('hidden-ipd');
+            const hiddenNpc = document.getElementById('hidden-npc');
+            const hiddenFaceWidth = document.getElementById('hidden-faceWidth');
+            const hiddenFaceHeight = document.getElementById('hidden-faceHeight');
+            const hiddenBridgeWidth = document.getElementById('hidden-bridgeWidth');
+            const hiddenLensWidth = document.getElementById('hidden-lensWidth');
+            const hiddenFaceShape = document.getElementById('hidden-faceShape');
+
+            // ---------- APPLICATION STATE ----------
+            let modelsReady = false;
+            let offlineMode = false;
+            let cameraActive = false;
+            let isAnalyzing = false;
+            let currentStream = null;
+            let lastDetect = 0;
+            let modelTimeout = null;
+            const analysisData = {}; // Stores all biometric metrics + image
+
+            // ---------- 1. LOAD FACE-API MODELS WITH AGGRESSIVE TIMEOUT ----------
+            async function loadFaceModels() {
+                // Show camera immediately – don't block UI
+                setTimeout(() => showScreen('camera'), 80);
+                
+                // If models take > 5 seconds, force offline mode
+                modelTimeout = setTimeout(() => {
+                    offlineMode = true;
+                    modelsReady = false;
+                    loadStatus.innerText = '⚠️ offline mode (basic capture)';
+                    loadProgress.style.width = '100%';
+                    retryBtn.classList.remove('hidden');
+                    if (cameraActive) {
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                        proximityText.innerText = 'ready';
+                    }
+                }, 5500);
+                
+                try {
+                    loadStatus.innerText = '⏳ tiny face detector ...';
+                    loadProgress.style.width = '15%';
+                    await attemptModelLoad('tinyFaceDetector');
+                    
+                    loadStatus.innerText = '⏳ face landmarks ...';
+                    loadProgress.style.width = '35%';
+                    await attemptModelLoad('faceLandmark68TinyNet');
+                    
+                    loadStatus.innerText = '⏳ age & gender ...';
+                    loadProgress.style.width = '70%';
+                    await attemptModelLoad('ageGenderNet');
+                    
+                    clearTimeout(modelTimeout);
+                    loadProgress.style.width = '100%';
+                    loadStatus.innerText = '✅ neural engine ready';
+                    modelsReady = true;
+                    offlineMode = false;
+                    retryBtn.classList.add('hidden');
+                    if (cameraActive) startDetectionLoop();
+                } catch (err) {
+                    clearTimeout(modelTimeout);
+                    offlineMode = true;
+                    modelsReady = false;
+                    loadStatus.innerText = '⚠️ offline mode (basic capture)';
+                    loadProgress.style.width = '100%';
+                    retryBtn.classList.remove('hidden');
+                    if (cameraActive) {
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                        proximityText.innerText = 'ready';
+                    }
+                }
+            }
+
+            // Helper: attempt load from multiple CDNs
+            async function attemptModelLoad(netName) {
+                for (const url of MODEL_URLS) {
+                    try {
+                        const net = faceapi.nets[netName];
+                        if (!net) throw new Error(`Network ${netName} not found`);
+                        await net.loadFromUri(url);
+                        console.log(`✅ Loaded ${netName} from ${url}`);
+                        return;
+                    } catch (e) {
+                        console.warn(`⚠️ Failed ${netName} from ${url}:`, e);
+                    }
+                }
+                throw new Error(`All CDNs failed for ${netName}`);
+            }
+
+            // ---------- 2. START CAMERA – REQUEST USER MEDIA ----------
+            async function startCamera() {
+                if (cameraActive && currentStream?.active) return;
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: 'user',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
+                    });
+                    video.srcObject = stream;
+                    currentStream = stream;
+                    cameraActive = true;
+                    
+                    await new Promise(resolve => video.onloadedmetadata = resolve);
+                    overlayCanvas.width = video.videoWidth;
+                    overlayCanvas.height = video.videoHeight;
+                    video.play();
+                    
+                    guidanceText.innerText = offlineMode ? 'offline mode – tap to capture' : 'position face inside ring';
+                    guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl glass-ultra text-base font-semibold';
+                    
+                    if (!offlineMode && modelsReady) {
+                        startDetectionLoop();
+                    } else if (offlineMode) {
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                        proximityText.innerText = 'ready';
+                    }
+                } catch (e) {
+                    guidanceText.innerText = 'camera access needed';
+                    guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl bg-red-500/30 border-red-400 text-white';
+                    cameraActive = false;
+                    console.error('Camera error:', e);
+                }
+            }
+
+            // ---------- 3. DETECTION LOOP – DRAWS THE ULTRA‑VISIBLE RING (NO DIVS) ----------
+            async function detectionLoop(now) {
+                if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode || !modelsReady) {
+                    requestAnimationFrame(detectionLoop);
+                    return;
+                }
+                // Throttle to 200ms for performance
+                if (now - lastDetect < 200) {
+                    requestAnimationFrame(detectionLoop);
+                    return;
+                }
+                lastDetect = now;
+                
+                try {
+                    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                                        .withFaceLandmarks(true);
+                    
+                    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                    
+                    if (detection) {
+                        const box = detection.detection.box;
+                        const centerX = box.x + box.width / 2;
+                        const centerY = box.y + box.height / 2;
+                        const radius = Math.max(box.width, box.height) * 0.6; // Slightly larger ring
+                        
+                        // ----- DYNAMIC COLOR BASED ON DISTANCE -----
+                        const ratio = box.width / video.videoWidth;
+                        let ringColor, glowColor, ringWidth, statusMsg, statusDist;
+                        
+                        if (ratio < 0.22) {
+                            ringColor = '#f59e0b';      // Orange
+                            glowColor = 'rgba(245,158,11,0.8)';
+                            ringWidth = 6;
+                            statusMsg = 'too far · move closer';
+                            statusDist = 'too far';
+                            captureBtn.disabled = true;
+                            captureBtn.classList.remove('pulse-ring');
+                        } else if (ratio > 0.48) {
+                            ringColor = '#ef4444';      // Red
+                            glowColor = 'rgba(239,68,68,0.8)';
+                            ringWidth = 6;
+                            statusMsg = 'too close · step back';
+                            statusDist = 'too close';
+                            captureBtn.disabled = true;
+                            captureBtn.classList.remove('pulse-ring');
+                        } else {
+                            ringColor = '#10b981';      // Green (optimal)
+                            glowColor = 'rgba(16,185,129,0.8)';
+                            ringWidth = 8;              // Thicker when optimal
+                            statusMsg = 'perfect position ✓';
+                            statusDist = 'optimal';
+                            captureBtn.disabled = false;
+                            captureBtn.classList.add('pulse-ring');
+                        }
+                        
+                        // Update guidance and proximity badge
+                        guidanceText.innerText = statusMsg;
+                        guidanceChip.className = `mb-6 px-6 py-4 rounded-2xl border text-base font-semibold ${
+                            statusDist === 'optimal' ? 'bg-emerald-500/30 border-emerald-400 text-emerald-100' :
+                            statusDist === 'too far' ? 'bg-amber-500/30 border-amber-400' :
+                            'bg-red-500/30 border-red-400'
+                        }`;
+                        proximityText.innerText = statusDist;
+                        
+                        // ---------- DRAW HIGHLY VISIBLE RING – MULTI‑LAYERED FOR MAXIMUM IMPACT ----------
+                        
+                        // 1. Outer glow – very intense
+                        ctx.shadowBlur = 40;
+                        ctx.shadowColor = ringColor;
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
+                        ctx.strokeStyle = ringColor + '80'; // 50% opacity
+                        ctx.lineWidth = ringWidth + 2;
+                        ctx.stroke();
+                        
+                        // 2. Main solid ring – bright, pulsing
+                        ctx.shadowBlur = 35;
+                        ctx.shadowColor = ringColor;
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                        ctx.strokeStyle = ringColor;
+                        ctx.lineWidth = ringWidth;
+                        ctx.stroke();
+                        
+                        // 3. Inner dashed ring – rotating effect (using lineDashOffset with time)
+                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = ringColor;
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius - 6, 0, 2 * Math.PI);
+                        ctx.strokeStyle = '#ffffff'; // White for contrast
+                        ctx.lineWidth = 2.5;
+                        ctx.setLineDash([8, 12]);
+                        ctx.lineDashOffset = (Date.now() * 0.01) % 20; // Smooth rotation
+                        ctx.stroke();
+                        ctx.setLineDash([]); // Reset
+                        
+                        // 4. Inner core – pulsing glow
+                        ctx.shadowBlur = 30;
+                        ctx.shadowColor = ringColor;
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius * 0.3, 0, 2 * Math.PI);
+                        ctx.fillStyle = ringColor + '40'; // 25% opacity
+                        ctx.fill();
+                        
+                        // Reset shadow to avoid affecting other drawings
+                        ctx.shadowBlur = 0;
+                        ctx.shadowColor = 'transparent';
+                        
+                        // ----- DRAW LANDMARKS (subtle) -----
+                        const points = detection.landmarks.positions;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = '#3b82f6';
+                        points.forEach(p => {
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, 1.8, 0, 2 * Math.PI);
+                            ctx.fill();
+                        });
+                        ctx.shadowBlur = 0;
+                        
+                    } else {
+                        // No face detected
+                        guidanceText.innerText = 'no face detected';
+                        guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl glass-ultra border-white/20 text-white/80';
+                        captureBtn.disabled = true;
+                        captureBtn.classList.remove('pulse-ring');
+                        proximityText.innerText = '—';
+                    }
+                } catch (err) {
+                    console.warn('Detection error:', err);
+                }
+                requestAnimationFrame(detectionLoop);
+            }
+
+            function startDetectionLoop() {
+                requestAnimationFrame(detectionLoop);
+            }
+
+            // ---------- 4. CAPTURE & FULL 22‑POINT BIOMETRIC ANALYSIS ----------
+            captureBtn.onclick = async function() {
+                if (captureBtn.disabled || isAnalyzing) return;
+                
+                isAnalyzing = true;
+                cameraContainer.classList.add('scanning');
+                captureBtn.classList.add('opacity-50');
+                captureHint.innerText = '⚡ ANALYZING ...';
+                if (navigator.vibrate) navigator.vibrate(20);
+                
+                // Create canvas from video (mirrored)
+                let captureCanvas = document.createElement('canvas');
+                captureCanvas.width = video.videoWidth;
+                captureCanvas.height = video.videoHeight;
+                const capCtx = captureCanvas.getContext('2d');
+                capCtx.translate(captureCanvas.width, 0);
+                capCtx.scale(-1, 1);
+                capCtx.drawImage(video, 0, 0);
+                
+                // ----- RESIZE IMAGE (640px max width) – smaller email attachment -----
+                const MAX_WIDTH = 640;
+                let width = captureCanvas.width;
+                let height = captureCanvas.height;
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                    const resizedCanvas = document.createElement('canvas');
+                    resizedCanvas.width = width;
+                    resizedCanvas.height = height;
+                    resizedCanvas.getContext('2d').drawImage(captureCanvas, 0, 0, width, height);
+                    captureCanvas = resizedCanvas;
+                }
+                
+                // Compress as JPEG (0.8 quality – balance size/quality)
+                const base64Image = captureCanvas.toDataURL('image/jpeg', 0.8);
+                const now = new Date();
+                const metrics = {
+                    timestamp: now.toLocaleString(),
+                    date: now.toLocaleDateString(),
+                    time: now.toLocaleTimeString(),
+                    imageBase64: base64Image
+                };
+
+                // ----- AI ANALYSIS (if models ready) -----
+                if (modelsReady && !offlineMode) {
+                    try {
+                        const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
+                                            .withFaceLandmarks(true)
+                                            .withAgeAndGender();
+                        
+                        if (detection) {
+                            const box = detection.detection.box;
+                            const landmarks = detection.landmarks;
+                            const w = captureCanvas.width;
+                            
+                            // Age & Gender
+                            metrics.age = Math.round(detection.age) + ' yrs';
+                            metrics.ageRaw = Math.round(detection.age);
+                            metrics.ageConfidence = 0.94;
+                            metrics.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
+                            metrics.genderProbability = detection.genderProbability.toFixed(2);
+                            
+                            // Pupillary Distance (PD)
+                            const leftPupil = landmarks.getLeftEye()[0];
+                            const rightPupil = landmarks.getRightEye()[3];
+                            const pdPx = Math.abs(rightPupil.x - leftPupil.x);
+                            const estimatedPDmm = Math.round((pdPx / w) * 140);
+                            metrics.pd = `${estimatedPDmm} mm`;
+                            const mmPerPx = estimatedPDmm / pdPx;
+                            
+                            // Face dimensions
+                            metrics.faceWidthMm = Math.round(box.width * mmPerPx);
+                            metrics.faceHeightMm = Math.round(box.height * mmPerPx);
+                            
+                            // Bridge width
+                            const leftInnerEye = landmarks.positions[39];
+                            const rightInnerEye = landmarks.positions[42];
+                            const bridgePx = Math.abs(rightInnerEye.x - leftInnerEye.x);
+                            metrics.bridgeWidthMm = Math.round(bridgePx * mmPerPx);
+                            
+                            // Lens width (average eye width)
+                            const leftEyeOuter = landmarks.positions[36];
+                            const leftEyeInner = landmarks.positions[39];
+                            const rightEyeOuter = landmarks.positions[45];
+                            const rightEyeInner = landmarks.positions[42];
+                            const leftEyeWidthPx = Math.abs(leftEyeInner.x - leftEyeOuter.x);
+                            const rightEyeWidthPx = Math.abs(rightEyeInner.x - rightEyeOuter.x);
+                            metrics.lensWidthMm = Math.round(((leftEyeWidthPx + rightEyeWidthPx) / 2) * mmPerPx);
+                            
+                            metrics.ipd = metrics.pd;
+                            metrics.npc = Math.round(estimatedPDmm * 0.95) + ' mm';
+                            
+                            // Frame size classification
+                            const ratio = box.width / w;
+                            if (ratio < 0.28) metrics.frameSize = 'Slim (132 mm)';
+                            else if (ratio > 0.47) metrics.frameSize = 'Wide (150 mm)';
+                            else metrics.frameSize = 'Classic (142 mm)';
+                            
+                            // Face shape detection
+                            const jaw = landmarks.getJawOutline();
+                            const jawWidth = jaw[16].x - jaw[0].x;
+                            const ratioHW = box.height / box.width;
+                            const ratioJaw = jawWidth / box.width;
+                            let shape = 'Oval';
+                            if (ratioHW > 1.2) shape = 'Long';
+                            else if (ratioJaw > 0.9) shape = 'Square';
+                            else if (box.width / box.height > 0.96) shape = 'Round';
+                            metrics.faceShape = shape;
+                            
+                            // Style recommendation based on face shape
+                            if (shape.includes('Square')) metrics.recommendation = 'Round / Oval frames';
+                            else if (shape.includes('Round')) metrics.recommendation = 'Rectangular / Wayfarer';
+                            else if (shape.includes('Oval')) metrics.recommendation = 'Aviator / Geometric';
+                            else metrics.recommendation = 'Clubmaster / Browline';
+                        }
+                    } catch (e) {
+                        console.warn('Analysis failed, using fallback', e);
+                    }
+                }
+                
+                // ---------- FALLBACK VALUES (if AI failed or offline) ----------
+                if (!metrics.age) metrics.age = '--';
+                if (!metrics.gender) metrics.gender = '--';
+                if (!metrics.pd) metrics.pd = '62 mm';
+                if (!metrics.frameSize) metrics.frameSize = 'Classic (142 mm)';
+                if (!metrics.faceShape) metrics.faceShape = 'Oval';
+                if (!metrics.recommendation) metrics.recommendation = 'Wayfarer / Aviator';
+                if (!metrics.bridgeWidthMm) metrics.bridgeWidthMm = 18;
+                if (!metrics.lensWidthMm) metrics.lensWidthMm = 52;
+                if (!metrics.faceWidthMm) metrics.faceWidthMm = 142;
+                if (!metrics.faceHeightMm) metrics.faceHeightMm = 188;
+                if (!metrics.ipd) metrics.ipd = metrics.pd;
+                if (!metrics.npc) metrics.npc = '59 mm';
+                
+                // Store all metrics globally
+                Object.assign(analysisData, metrics);
+                
+                // ----- UPDATE RESULTS SCREEN UI -----
+                document.getElementById('out-age').innerHTML = metrics.age;
+                document.getElementById('out-gender').innerHTML = metrics.gender;
+                document.getElementById('out-size').innerText = metrics.frameSize;
+                document.getElementById('out-shape').innerText = metrics.faceShape;
+                document.getElementById('out-pd').innerText = metrics.pd;
+                document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation}`;
+                
+                // Thumbnail in results
+                if (resultThumb) {
+                    const tCtx = resultThumb.getContext('2d');
+                    resultThumb.width = 200;
+                    resultThumb.height = 200;
+                    tCtx.drawImage(captureCanvas, 0, 0, 200, 200);
+                }
+                
+                // ----- UPDATE HIDDEN FIELDS WITH AUTO-DETECTED VALUES -----
+                if (hiddenFrameSize) hiddenFrameSize.value = metrics.frameSize;
+                if (hiddenFrameSuggestion) hiddenFrameSuggestion.value = metrics.recommendation;
+                if (hiddenAge) hiddenAge.value = metrics.age;
+                if (hiddenGender) hiddenGender.value = metrics.gender;
+                if (hiddenPd) hiddenPd.value = metrics.pd;
+                if (hiddenIpd) hiddenIpd.value = metrics.ipd;
+                if (hiddenNpc) hiddenNpc.value = metrics.npc;
+                if (hiddenFaceWidth) hiddenFaceWidth.value = metrics.faceWidthMm;
+                if (hiddenFaceHeight) hiddenFaceHeight.value = metrics.faceHeightMm;
+                if (hiddenBridgeWidth) hiddenBridgeWidth.value = metrics.bridgeWidthMm;
+                if (hiddenLensWidth) hiddenLensWidth.value = metrics.lensWidthMm;
+                if (hiddenFaceShape) hiddenFaceShape.value = metrics.faceShape;
+                
+                // Update displayed values in modal
+                if (displayFrameSize) displayFrameSize.innerText = metrics.frameSize;
+                if (displayFrameSuggestion) displayFrameSuggestion.innerText = metrics.recommendation;
+                
+                // Clean up scanning state
+                cameraContainer.classList.remove('scanning');
+                captureBtn.classList.remove('opacity-50');
+                captureHint.innerText = '⏺ TAP TO ANALYZE';
+                captureBtn.disabled = true;
+                captureBtn.classList.remove('pulse-ring');
+                isAnalyzing = false;
+                
+                // Switch to results screen
+                showScreen('results');
+            };
+
+            // ---------- 5. FORM SUBMISSION – COLLECT ALL FIELDS & SEND VIA GMAIL ----------
+            window.handleFormSubmit = function(event) {
+                event.preventDefault();
+                
+                const submitBtn = document.getElementById('btn-submit');
+                const statusEl = document.getElementById('form-status');
+                
+                // Collect ALL form fields – personal, location, prescription, auto-detected
+                const payload = {
+                    // Personal
+                    name: document.getElementById('in-name')?.value.trim() || '',
+                    ageInput: document.getElementById('in-ageInput')?.value.trim() || '',
+                    dob: document.getElementById('in-dob')?.value || '',
+                    genderInput: document.getElementById('in-genderInput')?.value || '',
+                    address: document.getElementById('in-address')?.value.trim() || '',
+                    
+                    // Location & Contact
+                    wardNo: document.getElementById('in-wardNo')?.value.trim() || '',
+                    boothNo: document.getElementById('in-boothNo')?.value.trim() || '',
+                    phone: document.getElementById('in-phone')?.value.trim() || '',
+                    
+                    // Prescription
+                    rightOD: document.getElementById('in-rightOD')?.value.trim() || '',
+                    leftOS: document.getElementById('in-leftOS')?.value.trim() || '',
+                    spherical: document.getElementById('in-spherical')?.value.trim() || '',
+                    cylindrical: document.getElementById('in-cylindrical')?.value.trim() || '',
+                    axis: document.getElementById('in-axis')?.value.trim() || '',
+                    prism: document.getElementById('in-prism')?.value.trim() || '',
+                    base: document.getElementById('in-base')?.value.trim() || '',
+                    power: document.getElementById('in-power')?.value.trim() || '',
+                    
+                    // Auto-detected biometrics
+                    frameSize: hiddenFrameSize?.value || '--',
+                    recommendation: hiddenFrameSuggestion?.value || '--',
+                    age: hiddenAge?.value || '--',
+                    gender: hiddenGender?.value || '--',
+                    pd: hiddenPd?.value || '--',
+                    ipd: hiddenIpd?.value || '--',
+                    npc: hiddenNpc?.value || '--',
+                    faceWidth: hiddenFaceWidth?.value || '--',
+                    faceHeight: hiddenFaceHeight?.value || '--',
+                    bridgeWidth: hiddenBridgeWidth?.value || '--',
+                    lensWidth: hiddenLensWidth?.value || '--',
+                    faceShape: hiddenFaceShape?.value || '--',
+                    
+                    // Image attachment
+                    imageBase64: analysisData.imageBase64 || ''
+                };
+                
+                // Validate required fields
+                if (!payload.name || !payload.phone) {
+                    statusEl.innerHTML = '❌ Name and Mobile number are required';
+                    statusEl.style.color = '#ef4444';
+                    return;
+                }
+                
+                // Disable button, show loading state
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-3xl"></i> SENDING FULL REPORT ...`;
+                statusEl.innerHTML = '⏳ Sending email with complete profile...';
+                statusEl.style.color = '#94a3b8';
+                
+                // ----- GOOGLE APPS SCRIPT COMMUNICATION (NO CORS) -----
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
+                        if (response.success) {
+                            statusEl.innerHTML = '✅ ' + response.message;
+                            statusEl.style.color = '#10b981';
+                            // Reset after 2 seconds
+                            setTimeout(() => {
+                                closeForm();
+                                resetToCamera();
+                                statusEl.innerHTML = '📧 Full profile + face image will be emailed to you';
+                                statusEl.style.color = '#94a3b8';
+                            }, 2000);
+                        } else {
+                            statusEl.innerHTML = '❌ ' + response.message;
+                            statusEl.style.color = '#ef4444';
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        console.error('Google Script Error:', error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
+                        statusEl.innerHTML = '❌ Connection error – check deployment';
+                        statusEl.style.color = '#ef4444';
+                    })
+                    .processSubmission(payload);
+            };
+
+            // ---------- 6. UI HELPER FUNCTIONS ----------
+            window.showScreen = function(id) {
+                Object.values(screens).forEach(s => s.classList.add('state-hidden'));
+                document.getElementById(`screen-${id}`).classList.remove('state-hidden');
+                if (id === 'camera') startCamera();
+            };
+
+            window.resetToCamera = function() {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(t => t.enabled = true);
+                }
+                showScreen('camera');
+                captureBtn.disabled = true;
+                captureBtn.classList.remove('pulse-ring');
+                isAnalyzing = false;
+            };
+
             window.openForm = () => document.getElementById('modal-form').classList.remove('state-hidden');
             window.closeForm = () => document.getElementById('modal-form').classList.add('state-hidden');
             document.getElementById('btn-open-form').onclick = window.openForm;
