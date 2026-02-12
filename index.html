@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LensAI Pro · Biometric Capture</title>
+    <title>LensAI Pro · Biometric Report</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -56,7 +56,7 @@
 </head>
 <body class="no-scrollbar">
 
-    <!-- header -->
+    <!-- header (export button removed) -->
     <header class="w-full px-4 pt-5 pb-2 flex items-center justify-between z-50">
         <div class="flex items-center gap-2.5 font-extrabold text-xl">
             <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
@@ -70,11 +70,6 @@
                 <i class="ph-fill ph-facebook-logo text-blue-400 text-lg"></i>
                 <span class="hidden sm:inline">demo</span>
             </a>
-            <button id="export-btn" onclick="exportToExcel()" 
-                class="px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 transition disabled:opacity-30 disabled:pointer-events-none" disabled>
-                <i class="ph ph-file-csv text-emerald-400"></i>
-                <span class="hidden sm:inline">Export</span>
-            </button>
         </div>
     </header>
 
@@ -227,9 +222,9 @@
                 </div>
                 <button type="submit" id="btn-submit" 
                     class="w-full bg-white hover:bg-slate-100 text-slate-900 font-extrabold py-5 rounded-2xl shadow-2xl mt-4 transition flex items-center justify-center gap-3">
-                    <i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE
+                    <i class="ph ph-download-simple text-xl"></i> DOWNLOAD REPORT
                 </button>
-                <p class="text-center text-[10px] text-slate-500 pt-2">AES‑256 · LensAI protected</p>
+                <p class="text-center text-[10px] text-slate-500 pt-2">📄 filename = phone number · plain text</p>
             </form>
         </div>
     </div>
@@ -238,11 +233,7 @@
         (function(){
             "use strict";
 
-            // 🔁 YOUR CORRECT WEB APP URL – DO NOT CHANGE
-            const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbygVMuW_lCMNrtzLg8LVCB1RgYhiDlZNZcF8t9gRiGtg6MPkS95pObTT6t4l6ybZzKf/exec";
-            const EXPORT_ENDPOINT = API_ENDPOINT + "?export=1";
-            
-            // Multiple CDNs for model fallback
+            // Model CDNs
             const MODEL_URLS = [
                 'https://justadudewhohacks.github.io/face-api.js/models/',
                 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models/'
@@ -266,7 +257,6 @@
             const loadProgress = document.getElementById('load-progress');
             const retryBtn = document.getElementById('retry-models');
             const resultThumb = document.getElementById('result-thumb-canvas');
-            const exportBtn = document.getElementById('export-btn');
             const cameraContainer = document.getElementById('camera-container');
 
             // ---------- STATE ----------
@@ -281,10 +271,8 @@
 
             // ---------- 1. LOAD MODELS WITH TIMEOUT & FALLBACK ----------
             async function loadFaceModels() {
-                // Show camera immediately (don't wait for models)
                 setTimeout(() => showScreen('camera'), 100);
                 
-                // If models take >5 seconds, force offline mode
                 modelTimeout = setTimeout(() => {
                     console.warn('Model loading timeout – switching to offline mode');
                     loadStatus.innerText = '⚠️ offline mode (basic capture)';
@@ -319,7 +307,6 @@
                     offlineMode = false;
                     retryBtn.classList.add('hidden');
                     
-                    // If camera already active, start detection
                     if (cameraActive) {
                         startDetectionLoop();
                     }
@@ -346,7 +333,7 @@
                         const net = faceapi.nets[netName];
                         if (!net) throw new Error(`Network ${netName} not found`);
                         await net.loadFromUri(url);
-                        return; // success
+                        return;
                     } catch (e) {
                         console.warn(`Failed to load ${netName} from ${url}:`, e);
                     }
@@ -393,7 +380,7 @@
                     requestAnimationFrame(detectionLoop);
                     return;
                 }
-                if (now - lastDetect < 200) { // throttle
+                if (now - lastDetect < 200) {
                     requestAnimationFrame(detectionLoop);
                     return;
                 }
@@ -446,9 +433,7 @@
                         captureBtn.classList.remove('pulse-ring');
                         proximityText.innerText = '—';
                     }
-                } catch (err) {
-                    // ignore
-                }
+                } catch (err) {}
                 requestAnimationFrame(detectionLoop);
             }
             function startDetectionLoop() {
@@ -465,7 +450,6 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                // capture flipped image
                 const captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -475,7 +459,6 @@
                 capCtx.drawImage(video, 0, 0);
                 const base64Image = captureCanvas.toDataURL('image/jpeg', 0.9);
                 
-                // ---------- EXTRACT 22+ METRICS ----------
                 const now = new Date();
                 const metrics = {
                     timestamp: now.toLocaleString(),
@@ -484,7 +467,6 @@
                     imageBase64: base64Image
                 };
 
-                // If models ready, run AI analysis
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
@@ -496,14 +478,12 @@
                             const landmarks = detection.landmarks;
                             const w = captureCanvas.width;
                             
-                            // Age & Gender
                             metrics.age = Math.round(detection.age) + ' yrs';
                             metrics.ageRaw = Math.round(detection.age);
                             metrics.ageConfidence = 0.94;
                             metrics.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
                             metrics.genderProbability = detection.genderProbability.toFixed(2);
                             
-                            // PD
                             const leftPupil = landmarks.getLeftEye()[0];
                             const rightPupil = landmarks.getRightEye()[3];
                             const pdPx = Math.abs(rightPupil.x - leftPupil.x);
@@ -511,17 +491,14 @@
                             metrics.pd = `${estimatedPDmm} mm`;
                             const mmPerPx = estimatedPDmm / pdPx;
                             
-                            // Face dimensions
                             metrics.faceWidthMm = Math.round(box.width * mmPerPx);
                             metrics.faceHeightMm = Math.round(box.height * mmPerPx);
                             
-                            // Bridge width
                             const leftInnerEye = landmarks.positions[39];
                             const rightInnerEye = landmarks.positions[42];
                             const bridgePx = Math.abs(rightInnerEye.x - leftInnerEye.x);
                             metrics.bridgeWidthMm = Math.round(bridgePx * mmPerPx);
                             
-                            // Lens width
                             const leftEyeOuter = landmarks.positions[36];
                             const leftEyeInner = landmarks.positions[39];
                             const rightEyeOuter = landmarks.positions[45];
@@ -533,13 +510,11 @@
                             metrics.ipd = metrics.pd;
                             metrics.npc = Math.round(estimatedPDmm * 0.95) + ' mm';
                             
-                            // Frame size
                             const ratio = box.width / w;
                             if (ratio < 0.28) metrics.frameSize = 'Slim (132 mm)';
                             else if (ratio > 0.47) metrics.frameSize = 'Wide (150 mm)';
                             else metrics.frameSize = 'Classic (142 mm)';
                             
-                            // Face shape
                             const jaw = landmarks.getJawOutline();
                             const jawWidth = jaw[16].x - jaw[0].x;
                             const ratioHW = box.height / box.width;
@@ -550,7 +525,6 @@
                             else if (box.width / box.height > 0.96) shape = 'Round';
                             metrics.faceShape = shape;
                             
-                            // Recommendation
                             if (shape.includes('Square')) metrics.recommendation = 'Round / Oval frames';
                             else if (shape.includes('Round')) metrics.recommendation = 'Rectangular / Wayfarer';
                             else if (shape.includes('Oval')) metrics.recommendation = 'Aviator / Geometric';
@@ -561,7 +535,7 @@
                     }
                 }
                 
-                // FALLBACK for missing fields (AI failed or offline)
+                // FALLBACK
                 if (!metrics.age) metrics.age = '--';
                 if (!metrics.gender) metrics.gender = '--';
                 if (!metrics.pd) metrics.pd = '62 mm';
@@ -575,10 +549,8 @@
                 if (!metrics.ipd) metrics.ipd = metrics.pd;
                 if (!metrics.npc) metrics.npc = '59 mm';
                 
-                // store globally
                 Object.assign(analysisData, metrics);
                 
-                // update UI
                 document.getElementById('out-age').innerHTML = metrics.age;
                 document.getElementById('out-gender').innerHTML = metrics.gender;
                 document.getElementById('out-size').innerText = metrics.frameSize;
@@ -586,14 +558,12 @@
                 document.getElementById('out-pd').innerText = metrics.pd;
                 document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation}`;
                 
-                // thumbnail
                 if (resultThumb) {
                     const tCtx = resultThumb.getContext('2d');
                     resultThumb.width = 200; resultThumb.height = 200;
                     tCtx.drawImage(captureCanvas, 0, 0, 200, 200);
                 }
                 
-                exportBtn.disabled = false;
                 cameraContainer.classList.remove('scanning');
                 captureBtn.classList.remove('opacity-50');
                 captureHint.innerText = '⏺ TAP TO ANALYZE';
@@ -604,84 +574,76 @@
                 showScreen('results');
             };
 
-            // ---------- 5. SUBMIT TO GOOGLE APPS SCRIPT ----------
-            document.getElementById('final-form').onsubmit = async (e) => {
+            // ---------- 5. GENERATE & DOWNLOAD REPORT (NO UPLOAD) ----------
+            document.getElementById('final-form').onsubmit = function(e) {
                 e.preventDefault();
+                
                 const submitBtn = document.getElementById('btn-submit');
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-xl"></i> SECURING ...`;
-
-                const payload = {
-                    name: document.getElementById('in-name').value,
-                    phone: document.getElementById('in-phone').value,
-                    ward: document.getElementById('in-ward').value || '—',
-                    power: document.getElementById('in-power').value || '—',
-                    age: analysisData.age || '--',
-                    ageConfidence: analysisData.ageConfidence || 0.9,
-                    gender: analysisData.gender || '--',
-                    genderProbability: analysisData.genderProbability || '0.95',
-                    frameSize: analysisData.frameSize || '--',
-                    faceShape: analysisData.faceShape || '--',
-                    pd: analysisData.pd || '--',
-                    ipd: analysisData.ipd || analysisData.pd || '--',
-                    npc: analysisData.npc || '--',
-                    faceWidth: analysisData.faceWidthMm || '--',
-                    faceHeight: analysisData.faceHeightMm || '--',
-                    bridgeWidth: analysisData.bridgeWidthMm || '--',
-                    lensWidth: analysisData.lensWidthMm || '--',
-                    recommendation: analysisData.recommendation || '--',
-                    image: analysisData.imageBase64 || '',
-                    date: analysisData.date || '',
-                    time: analysisData.time || ''
-                };
-
-                try {
-                    const response = await fetch(API_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        alert('✨ Profile encrypted & uploaded!');
-                        location.reload();
-                    } else {
-                        alert('❌ Server error: ' + (result.message || 'Unknown'));
-                        resetSubmitBtn();
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert('❌ Upload failed – check Web App URL / network');
-                    resetSubmitBtn();
-                }
-            };
-            function resetSubmitBtn() {
-                const btn = document.getElementById('btn-submit');
-                btn.disabled = false;
-                btn.innerHTML = `<i class="ph ph-cloud-arrow-up"></i> ENCRYPT & SAVE`;
-            }
-
-            // ---------- 6. EXPORT CSV ----------
-            window.exportToExcel = async function() {
-                try {
-                    exportBtn.disabled = true;
-                    exportBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin"></i> Downloading...`;
-                    const response = await fetch(EXPORT_ENDPOINT);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `LensAI_export_${new Date().toISOString().slice(0,10)}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    window.URL.revokeObjectURL(url);
-                } catch (err) {
-                    alert('❌ Export failed – backend may not support GET');
-                } finally {
-                    exportBtn.disabled = false;
-                    exportBtn.innerHTML = `<i class="ph ph-file-csv text-emerald-400"></i><span class="hidden sm:inline">Export</span>`;
-                }
+                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-xl"></i> GENERATING ...`;
+                
+                // Collect all data
+                const name = document.getElementById('in-name').value.trim() || 'N/A';
+                const phone = document.getElementById('in-phone').value.trim();
+                const ward = document.getElementById('in-ward').value.trim() || '—';
+                const power = document.getElementById('in-power').value.trim() || '—';
+                
+                // Build report content
+                const reportLines = [];
+                reportLines.push('='.repeat(50));
+                reportLines.push('                 LENSAI PRO · BIOMETRIC REPORT');
+                reportLines.push('='.repeat(50));
+                reportLines.push('');
+                reportLines.push(`Report generated : ${new Date().toLocaleString()}`);
+                reportLines.push('');
+                reportLines.push('─── CUSTOMER INFORMATION ──────────────────────');
+                reportLines.push(`Full Name        : ${name}`);
+                reportLines.push(`Phone Number     : ${phone}`);
+                reportLines.push(`Ward / Location  : ${ward}`);
+                reportLines.push(`Prescription     : ${power}`);
+                reportLines.push('');
+                reportLines.push('─── FACIAL BIOMETRICS ─────────────────────────');
+                reportLines.push(`Age Estimate     : ${analysisData.age || '--'}`);
+                reportLines.push(`Gender           : ${analysisData.gender || '--'}`);
+                reportLines.push(`Face Shape       : ${analysisData.faceShape || '--'}`);
+                reportLines.push(`Frame Size       : ${analysisData.frameSize || '--'}`);
+                reportLines.push(`PD (Pupillary)   : ${analysisData.pd || '--'}`);
+                reportLines.push(`IPD              : ${analysisData.ipd || analysisData.pd || '--'}`);
+                reportLines.push(`NPC (Near)       : ${analysisData.npc || '--'}`);
+                reportLines.push(`Face Width       : ${analysisData.faceWidthMm || '--'} mm`);
+                reportLines.push(`Face Height      : ${analysisData.faceHeightMm || '--'} mm`);
+                reportLines.push(`Bridge Width     : ${analysisData.bridgeWidthMm || '--'} mm`);
+                reportLines.push(`Lens Width       : ${analysisData.lensWidthMm || '--'} mm`);
+                reportLines.push('');
+                reportLines.push('─── STYLE RECOMMENDATION ──────────────────────');
+                reportLines.push(`Recommended      : ${analysisData.recommendation || '--'}`);
+                reportLines.push('');
+                reportLines.push('='.repeat(50));
+                reportLines.push('         End of Report – LensAI Pro');
+                reportLines.push('='.repeat(50));
+                
+                const reportContent = reportLines.join('\n');
+                
+                // Create file and download
+                const blob = new Blob([reportContent], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${phone}.txt`;   // Filename = phone number
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                // Reset button and show success
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="ph ph-download-simple text-xl"></i> DOWNLOAD REPORT`;
+                
+                alert('✅ Report downloaded successfully!');
+                
+                // Optionally close modal and reset to camera
+                closeForm();
+                resetToCamera();
             };
 
             // ---------- UI HELPERS ----------
