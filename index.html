@@ -56,7 +56,6 @@
 </head>
 <body class="no-scrollbar">
 
-    <!-- header (export button removed) -->
     <header class="w-full px-4 pt-5 pb-2 flex items-center justify-between z-50">
         <div class="flex items-center gap-2.5 font-extrabold text-xl">
             <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
@@ -224,7 +223,7 @@
                     class="w-full bg-white hover:bg-slate-100 text-slate-900 font-extrabold py-5 rounded-2xl shadow-2xl mt-4 transition flex items-center justify-center gap-3">
                     <i class="ph ph-download-simple text-xl"></i> DOWNLOAD REPORT
                 </button>
-                <p class="text-center text-[10px] text-slate-500 pt-2">📄 filename = phone number · plain text</p>
+                <p class="text-center text-[10px] text-slate-500 pt-2">📄 HTML report · includes face image</p>
             </form>
         </div>
     </div>
@@ -233,13 +232,13 @@
         (function(){
             "use strict";
 
-            // Model CDNs
+            // Model CDNs with fallback
             const MODEL_URLS = [
                 'https://justadudewhohacks.github.io/face-api.js/models/',
                 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models/'
             ];
 
-            // ---------- DOM elements ----------
+            // DOM elements
             const screens = {
                 loading: document.getElementById('screen-loading'),
                 camera: document.getElementById('screen-camera'),
@@ -259,7 +258,7 @@
             const resultThumb = document.getElementById('result-thumb-canvas');
             const cameraContainer = document.getElementById('camera-container');
 
-            // ---------- STATE ----------
+            // State
             let modelsReady = false;
             let offlineMode = false;
             let cameraActive = false;
@@ -269,12 +268,12 @@
             let modelTimeout = null;
             const analysisData = {};
 
-            // ---------- 1. LOAD MODELS WITH TIMEOUT & FALLBACK ----------
+            // ---------- 1. LOAD MODELS WITH TIMEOUT ----------
             async function loadFaceModels() {
                 setTimeout(() => showScreen('camera'), 100);
                 
                 modelTimeout = setTimeout(() => {
-                    console.warn('Model loading timeout – switching to offline mode');
+                    console.warn('Model timeout – offline mode');
                     loadStatus.innerText = '⚠️ offline mode (basic capture)';
                     loadProgress.style.width = '100%';
                     modelsReady = false;
@@ -307,18 +306,14 @@
                     offlineMode = false;
                     retryBtn.classList.add('hidden');
                     
-                    if (cameraActive) {
-                        startDetectionLoop();
-                    }
+                    if (cameraActive) startDetectionLoop();
                 } catch (err) {
                     clearTimeout(modelTimeout);
-                    console.error('All model loads failed:', err);
                     loadStatus.innerText = '⚠️ offline mode (basic capture)';
                     loadProgress.style.width = '100%';
                     modelsReady = false;
                     offlineMode = true;
                     retryBtn.classList.remove('hidden');
-                    
                     if (cameraActive) {
                         captureBtn.disabled = false;
                         captureBtn.classList.add('pulse-ring');
@@ -335,13 +330,13 @@
                         await net.loadFromUri(url);
                         return;
                     } catch (e) {
-                        console.warn(`Failed to load ${netName} from ${url}:`, e);
+                        console.warn(`Failed ${netName} from ${url}:`, e);
                     }
                 }
                 throw new Error(`All CDNs failed for ${netName}`);
             }
 
-            // ---------- 2. START CAMERA ----------
+            // ---------- 2. CAMERA ----------
             async function startCamera() {
                 if (cameraActive && currentStream?.active) return;
                 try {
@@ -360,9 +355,8 @@
                     guidanceText.innerText = offlineMode ? 'offline mode – tap to capture' : 'position face inside frame';
                     guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl glass-panel text-sm font-semibold';
                     
-                    if (!offlineMode && modelsReady) {
-                        startDetectionLoop();
-                    } else if (offlineMode) {
+                    if (!offlineMode && modelsReady) startDetectionLoop();
+                    else if (offlineMode) {
                         captureBtn.disabled = false;
                         captureBtn.classList.add('pulse-ring');
                         proximityText.innerText = 'ready';
@@ -374,7 +368,7 @@
                 }
             }
 
-            // ---------- 3. DETECTION LOOP (only if models ready) ----------
+            // ---------- 3. DETECTION LOOP ----------
             async function detectionLoop(now) {
                 if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode || !modelsReady) {
                     requestAnimationFrame(detectionLoop);
@@ -440,7 +434,7 @@
                 requestAnimationFrame(detectionLoop);
             }
 
-            // ---------- 4. CAPTURE & ANALYZE (works in both normal & offline) ----------
+            // ---------- 4. CAPTURE & ANALYZE ----------
             captureBtn.onclick = async function() {
                 if (captureBtn.disabled || isAnalyzing) return;
                 
@@ -535,7 +529,7 @@
                     }
                 }
                 
-                // FALLBACK
+                // Fallback values
                 if (!metrics.age) metrics.age = '--';
                 if (!metrics.gender) metrics.gender = '--';
                 if (!metrics.pd) metrics.pd = '62 mm';
@@ -574,7 +568,7 @@
                 showScreen('results');
             };
 
-            // ---------- 5. GENERATE & DOWNLOAD REPORT (NO UPLOAD) ----------
+            // ---------- 5. GENERATE HTML REPORT WITH EMBEDDED IMAGE ----------
             document.getElementById('final-form').onsubmit = function(e) {
                 e.preventDefault();
                 
@@ -582,66 +576,295 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-xl"></i> GENERATING ...`;
                 
-                // Collect all data
+                // Get form values
                 const name = document.getElementById('in-name').value.trim() || 'N/A';
                 const phone = document.getElementById('in-phone').value.trim();
                 const ward = document.getElementById('in-ward').value.trim() || '—';
                 const power = document.getElementById('in-power').value.trim() || '—';
                 
-                // Build report content
-                const reportLines = [];
-                reportLines.push('='.repeat(50));
-                reportLines.push('                 LENSAI PRO · BIOMETRIC REPORT');
-                reportLines.push('='.repeat(50));
-                reportLines.push('');
-                reportLines.push(`Report generated : ${new Date().toLocaleString()}`);
-                reportLines.push('');
-                reportLines.push('─── CUSTOMER INFORMATION ──────────────────────');
-                reportLines.push(`Full Name        : ${name}`);
-                reportLines.push(`Phone Number     : ${phone}`);
-                reportLines.push(`Ward / Location  : ${ward}`);
-                reportLines.push(`Prescription     : ${power}`);
-                reportLines.push('');
-                reportLines.push('─── FACIAL BIOMETRICS ─────────────────────────');
-                reportLines.push(`Age Estimate     : ${analysisData.age || '--'}`);
-                reportLines.push(`Gender           : ${analysisData.gender || '--'}`);
-                reportLines.push(`Face Shape       : ${analysisData.faceShape || '--'}`);
-                reportLines.push(`Frame Size       : ${analysisData.frameSize || '--'}`);
-                reportLines.push(`PD (Pupillary)   : ${analysisData.pd || '--'}`);
-                reportLines.push(`IPD              : ${analysisData.ipd || analysisData.pd || '--'}`);
-                reportLines.push(`NPC (Near)       : ${analysisData.npc || '--'}`);
-                reportLines.push(`Face Width       : ${analysisData.faceWidthMm || '--'} mm`);
-                reportLines.push(`Face Height      : ${analysisData.faceHeightMm || '--'} mm`);
-                reportLines.push(`Bridge Width     : ${analysisData.bridgeWidthMm || '--'} mm`);
-                reportLines.push(`Lens Width       : ${analysisData.lensWidthMm || '--'} mm`);
-                reportLines.push('');
-                reportLines.push('─── STYLE RECOMMENDATION ──────────────────────');
-                reportLines.push(`Recommended      : ${analysisData.recommendation || '--'}`);
-                reportLines.push('');
-                reportLines.push('='.repeat(50));
-                reportLines.push('         End of Report – LensAI Pro');
-                reportLines.push('='.repeat(50));
+                // Get biometric data (with fallbacks)
+                const age = analysisData.age || '--';
+                const gender = analysisData.gender || '--';
+                const faceShape = analysisData.faceShape || '--';
+                const frameSize = analysisData.frameSize || '--';
+                const pd = analysisData.pd || '--';
+                const ipd = analysisData.ipd || pd;
+                const npc = analysisData.npc || '--';
+                const faceWidth = analysisData.faceWidthMm || '--';
+                const faceHeight = analysisData.faceHeightMm || '--';
+                const bridgeWidth = analysisData.bridgeWidthMm || '--';
+                const lensWidth = analysisData.lensWidthMm || '--';
+                const recommendation = analysisData.recommendation || '--';
+                const timestamp = analysisData.timestamp || new Date().toLocaleString();
                 
-                const reportContent = reportLines.join('\n');
+                // Embedded image (base64)
+                const imageBase64 = analysisData.imageBase64 || '';
                 
-                // Create file and download
-                const blob = new Blob([reportContent], { type: 'text/plain' });
+                // Build HTML report content
+                const reportHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LensAI Report - ${phone}</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .report-container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1);
+            padding: 32px;
+            border: 1px solid #e2e8f0;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 2px solid #2563eb20;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+        }
+        .logo {
+            background: linear-gradient(145deg, #2563eb, #1e40af);
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        .photo-section {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+            background: #f1f5f9;
+            padding: 24px;
+            border-radius: 24px;
+        }
+        .face-image {
+            width: 160px;
+            height: 160px;
+            border-radius: 16px;
+            border: 3px solid #2563eb;
+            object-fit: cover;
+            background: white;
+        }
+        .customer-details {
+            flex: 1;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px 32px;
+            margin-top: 16px;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .detail-unit {
+            font-size: 12px;
+            color: #64748b;
+            margin-left: 4px;
+            font-weight: normal;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .biometric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .biometric-card {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .biometric-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .biometric-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .recommendation {
+            background: linear-gradient(145deg, #fef9c3, #fef08a);
+            border: 1px solid #eab308;
+            border-radius: 20px;
+            padding: 20px 24px;
+            margin-top: 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .rec-icon {
+            font-size: 32px;
+        }
+        .rec-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: #854d0e;
+        }
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 24px;
+        }
+        .phone-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #2563eb;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="header">
+            <div class="logo">👓</div>
+            <div>
+                <div class="title">LensAI Pro · Biometric Report</div>
+                <div class="subtitle">AI-powered facial analysis · ${timestamp}</div>
+            </div>
+        </div>
+        
+        <div class="photo-section">
+            ${imageBase64 ? `<img src="${imageBase64}" class="face-image" alt="Customer face">` : '<div style="width:160px;height:160px;background:#cbd5e1;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#475569;">No image</div>'}
+            <div class="customer-details">
+                <div class="phone-number">📱 ${phone}</div>
+                <div style="font-size:20px;font-weight:700;margin-bottom:4px;">${name}</div>
+                <div style="color:#475569; margin-bottom:12px;">${ward} · ${power}</div>
+                <div style="display:flex; gap:8px;">
+                    <span style="background:#2563eb10; padding:6px 16px; border-radius:100px; font-size:14px; border:1px solid #2563eb30;">${age}</span>
+                    <span style="background:#8b5cf610; padding:6px 16px; border-radius:100px; font-size:14px; border:1px solid #8b5cf630;">${gender}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">📐 Facial Biometrics</div>
+        <div class="biometric-grid">
+            <div class="biometric-card">
+                <div class="biometric-label">Face shape</div>
+                <div class="biometric-value">${faceShape}</div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">Frame size</div>
+                <div class="biometric-value">${frameSize}</div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">PD (IPD)</div>
+                <div class="biometric-value">${pd}</div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">NPC</div>
+                <div class="biometric-value">${npc}</div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">Face width</div>
+                <div class="biometric-value">${faceWidth}<span class="detail-unit">mm</span></div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">Face height</div>
+                <div class="biometric-value">${faceHeight}<span class="detail-unit">mm</span></div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">Bridge width</div>
+                <div class="biometric-value">${bridgeWidth}<span class="detail-unit">mm</span></div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">Lens width</div>
+                <div class="biometric-value">${lensWidth}<span class="detail-unit">mm</span></div>
+            </div>
+            <div class="biometric-card">
+                <div class="biometric-label">IPD</div>
+                <div class="biometric-value">${ipd}</div>
+            </div>
+        </div>
+
+        <div class="recommendation">
+            <div class="rec-icon">✨</div>
+            <div>
+                <div style="font-size:14px; color:#854d0e; font-weight:600;">STYLE RECOMMENDATION</div>
+                <div class="rec-text">${recommendation}</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            LensAI Pro · Biometric Analysis · Report generated ${timestamp}<br>
+            This report is computer-generated and verified.
+        </div>
+    </div>
+</body>
+</html>`;
+                
+                // Create download
+                const blob = new Blob([reportHTML], { type: 'text/html' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${phone}.txt`;   // Filename = phone number
+                a.download = `${phone}.html`;   // Filename = phone number.html
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
                 
-                // Reset button and show success
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `<i class="ph ph-download-simple text-xl"></i> DOWNLOAD REPORT`;
                 
                 alert('✅ Report downloaded successfully!');
                 
-                // Optionally close modal and reset to camera
                 closeForm();
                 resetToCamera();
             };
