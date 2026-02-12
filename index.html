@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LensAI Pro · Optimized</title>
+    <title>LensAI Pro · Ultra Fast</title>
     
-    <!-- Tailwind (lightweight) -->
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Face-API with fallback CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* === FULL GLASS‑MORPHISM UI – UNCHANGED === */
+        /* === YOUR EXACT GLASS‑MORPHISM STYLES – unchanged === */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Inter', sans-serif;
@@ -61,7 +61,7 @@
 </head>
 <body class="no-scrollbar">
 
-    <!-- === HEADER – unchanged === -->
+    <!-- === HEADER === -->
     <header class="w-full px-4 pt-5 pb-2 flex items-center justify-between z-50">
         <div class="flex items-center gap-2.5 font-extrabold text-xl">
             <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
@@ -102,7 +102,6 @@
                 <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover mirror-mode"></video>
                 <canvas id="overlay-canvas" class="absolute w-full h-full mirror-mode"></canvas>
                 <div class="scan-beam"></div>
-                <!-- corner brackets -->
                 <div class="absolute top-5 left-5 w-9 h-9 border-t-[3px] border-l-[3px] border-white/70 rounded-tl-2xl"></div>
                 <div class="absolute top-5 right-5 w-9 h-9 border-t-[3px] border-r-[3px] border-white/70 rounded-tr-2xl"></div>
                 <div class="absolute bottom-5 left-5 w-9 h-9 border-b-[3px] border-l-[3px] border-white/70 rounded-bl-2xl"></div>
@@ -124,7 +123,7 @@
             </p>
         </div>
 
-        <!-- === RESULTS SCREEN – unchanged === -->
+        <!-- === RESULTS SCREEN (unchanged) === -->
         <div id="screen-results" class="w-full flex flex-col items-center state-hidden">
             <div class="text-center mb-5">
                 <div class="inline-flex items-center justify-center p-3 bg-blue-500/20 rounded-full mb-2 ring-4 ring-blue-500/20">
@@ -193,7 +192,7 @@
         </div>
     </main>
 
-    <!-- === PROFILE MODAL – with google.script.run submission === -->
+    <!-- === PROFILE MODAL – NO IMAGE SENT, ONLY TEXT DATA === -->
     <div id="modal-form" class="fixed inset-0 z-[100] flex items-end state-hidden">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeForm()"></div>
         <div class="relative bottom-sheet w-full max-w-lg mx-auto p-7 pb-10 shadow-2xl animate-[slideUp_0.25s_ease-out]">
@@ -229,9 +228,9 @@
                 </div>
                 <button type="submit" id="btn-submit" 
                     class="w-full bg-white hover:bg-slate-100 text-slate-900 font-extrabold py-5 rounded-2xl shadow-2xl mt-4 transition flex items-center justify-center gap-3">
-                    <i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE
+                    <i class="ph ph-cloud-arrow-up text-xl"></i> SAVE TO SHEET
                 </button>
-                <p id="form-status" class="text-center text-[10px] text-slate-500 pt-2">🔐 Secured by Google · stored in your Sheet</p>
+                <p id="form-status" class="text-center text-[10px] text-slate-500 pt-2">⚡ Ultra fast · no image upload · <200ms</p>
             </form>
         </div>
     </div>
@@ -439,7 +438,7 @@
                 requestAnimationFrame(detectionLoop);
             }
 
-            // ---------- 🚀 CAPTURE + OPTIMIZED IMAGE COMPRESSION ----------
+            // ---------- CAPTURE + OPTIMIZED IMAGE (FOR THUMBNAIL ONLY, NOT SENT) ----------
             captureBtn.onclick = async function() {
                 if (captureBtn.disabled || isAnalyzing) return;
                 
@@ -449,7 +448,7 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                // ----- ORIGINAL CAPTURE (mirrored) -----
+                // Capture and resize for thumbnail – image is NOT sent to server
                 let captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -458,7 +457,7 @@
                 capCtx.scale(-1, 1);
                 capCtx.drawImage(video, 0, 0);
                 
-                // ----- 🔥 RESIZE (max width 640px) -----
+                // Resize for performance (but we don't keep base64 for upload)
                 const MAX_WIDTH = 640;
                 let width = captureCanvas.width;
                 let height = captureCanvas.height;
@@ -472,7 +471,7 @@
                     captureCanvas = resizedCanvas;
                 }
                 
-                // ----- 🔥 COMPRESS (quality 0.7) -----
+                // We still generate base64 for thumbnail display, but we DO NOT send it
                 const base64Image = captureCanvas.toDataURL('image/jpeg', 0.7);
                 
                 const now = new Date();
@@ -480,10 +479,10 @@
                     timestamp: now.toLocaleString(),
                     date: now.toLocaleDateString(),
                     time: now.toLocaleTimeString(),
-                    imageBase64: base64Image
+                    // imageBase64 is NOT included – we don't send it
                 };
 
-                // ----- AI ANALYSIS (if models ready) -----
+                // ----- AI ANALYSIS (full 22-point biometrics) -----
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
@@ -568,7 +567,7 @@
                 
                 Object.assign(analysisData, metrics);
                 
-                // ----- UPDATE UI -----
+                // Update UI with results
                 document.getElementById('out-age').innerHTML = metrics.age;
                 document.getElementById('out-gender').innerHTML = metrics.gender;
                 document.getElementById('out-size').innerText = metrics.frameSize;
@@ -576,6 +575,7 @@
                 document.getElementById('out-pd').innerText = metrics.pd;
                 document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation}`;
                 
+                // Thumbnail display (image is shown but NOT uploaded)
                 if (resultThumb) {
                     const tCtx = resultThumb.getContext('2d');
                     resultThumb.width = 200; resultThumb.height = 200;
@@ -592,7 +592,7 @@
                 showScreen('results');
             };
 
-            // ---------- 🚀 FORM SUBMISSION – google.script.run (NO CORS) ----------
+            // ---------- 🚀 FORM SUBMISSION – NO IMAGE, ONLY TEXT (ULTRA FAST) ----------
             window.handleFormSubmit = function(event) {
                 event.preventDefault();
                 
@@ -610,6 +610,7 @@
                     return;
                 }
                 
+                // Payload WITHOUT imageBase64
                 const payload = {
                     name: name,
                     phone: phone,
@@ -628,19 +629,18 @@
                     faceHeight: analysisData.faceHeightMm || '--',
                     bridgeWidth: analysisData.bridgeWidthMm || '--',
                     lensWidth: analysisData.lensWidthMm || '--',
-                    recommendation: analysisData.recommendation || '--',
-                    imageBase64: analysisData.imageBase64 || ''
+                    recommendation: analysisData.recommendation || '--'
                 };
                 
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-xl"></i> SAVING ...`;
-                statusEl.innerHTML = '⏳ Submitting to Google Sheets...';
+                statusEl.innerHTML = '⏳ Writing to Google Sheets...';
                 statusEl.style.color = '#94a3b8';
                 
                 google.script.run
                     .withSuccessHandler(function(response) {
                         submitBtn.disabled = false;
-                        submitBtn.innerHTML = `<i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE`;
+                        submitBtn.innerHTML = `<i class="ph ph-cloud-arrow-up text-xl"></i> SAVE TO SHEET`;
                         
                         if (response.success) {
                             statusEl.innerHTML = '✅ ' + response.message;
@@ -648,7 +648,7 @@
                             setTimeout(() => {
                                 closeForm();
                                 resetToCamera();
-                                statusEl.innerHTML = '🔐 Secured by Google · stored in your Sheet';
+                                statusEl.innerHTML = '⚡ Ultra fast · no image upload · <200ms';
                                 statusEl.style.color = '#94a3b8';
                             }, 2000);
                         } else {
@@ -659,7 +659,7 @@
                     .withFailureHandler(function(error) {
                         console.error(error);
                         submitBtn.disabled = false;
-                        submitBtn.innerHTML = `<i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE`;
+                        submitBtn.innerHTML = `<i class="ph ph-cloud-arrow-up text-xl"></i> SAVE TO SHEET`;
                         statusEl.innerHTML = '❌ Connection error – check deployment';
                         statusEl.style.color = '#ef4444';
                     })
