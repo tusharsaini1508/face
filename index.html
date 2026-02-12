@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>LensAI Pro · Biometric Capture</title>
     
-    <!-- Tailwind (lightweight) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Face-API with fallback CDNs in code -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Phosphor icons -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -241,8 +238,8 @@
         (function(){
             "use strict";
 
-            // 🔁 YOUR WEB APP URL – already set to your deployed endpoint
-            const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzQypZnC776SULQS_Dt96-GTde9kYVISwIxZaORosSmXFXkc6Zqv6Y0Df44v-Dha8Yi/exec";
+            // 🔁 YOUR CORRECT WEB APP URL – DO NOT CHANGE
+            const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwoXhZaGB71b5xlrJ51froG7TkTR7YiU30Q10A_iI9X9ysZ37v67fvZhgKBH4UVtTAF/exec";
             const EXPORT_ENDPOINT = API_ENDPOINT + "?export=1";
             
             // Multiple CDNs for model fallback
