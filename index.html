@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LensAI Pro · Biometric Capture</title>
+    <title>LensAI Pro · Optimized</title>
     
+    <!-- Tailwind (lightweight) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Face-API with fallback CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Phosphor icons -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+    <!-- Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* === YOUR EXACT STYLES – unchanged === */
+        /* === FULL GLASS‑MORPHISM UI – UNCHANGED === */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Inter', sans-serif;
@@ -57,7 +61,7 @@
 </head>
 <body class="no-scrollbar">
 
-    <!-- === HEADER === -->
+    <!-- === HEADER – unchanged === -->
     <header class="w-full px-4 pt-5 pb-2 flex items-center justify-between z-50">
         <div class="flex items-center gap-2.5 font-extrabold text-xl">
             <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
@@ -98,6 +102,7 @@
                 <video id="video-feed" autoplay muted playsinline class="absolute w-full h-full object-cover mirror-mode"></video>
                 <canvas id="overlay-canvas" class="absolute w-full h-full mirror-mode"></canvas>
                 <div class="scan-beam"></div>
+                <!-- corner brackets -->
                 <div class="absolute top-5 left-5 w-9 h-9 border-t-[3px] border-l-[3px] border-white/70 rounded-tl-2xl"></div>
                 <div class="absolute top-5 right-5 w-9 h-9 border-t-[3px] border-r-[3px] border-white/70 rounded-tr-2xl"></div>
                 <div class="absolute bottom-5 left-5 w-9 h-9 border-b-[3px] border-l-[3px] border-white/70 rounded-bl-2xl"></div>
@@ -119,7 +124,7 @@
             </p>
         </div>
 
-        <!-- === RESULTS SCREEN === -->
+        <!-- === RESULTS SCREEN – unchanged === -->
         <div id="screen-results" class="w-full flex flex-col items-center state-hidden">
             <div class="text-center mb-5">
                 <div class="inline-flex items-center justify-center p-3 bg-blue-500/20 rounded-full mb-2 ring-4 ring-blue-500/20">
@@ -188,7 +193,7 @@
         </div>
     </main>
 
-    <!-- === PROFILE MODAL – SUBMIT USING google.script.run === -->
+    <!-- === PROFILE MODAL – with google.script.run submission === -->
     <div id="modal-form" class="fixed inset-0 z-[100] flex items-end state-hidden">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeForm()"></div>
         <div class="relative bottom-sheet w-full max-w-lg mx-auto p-7 pb-10 shadow-2xl animate-[slideUp_0.25s_ease-out]">
@@ -213,7 +218,7 @@
                         class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30">
                 </div>
                 <div>
-                    <label class="text-[11px]font-bold text-slate-400 uppercase ml-1">ward / location</label>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1">ward / location</label>
                     <input type="text" id="in-ward" name="ward" placeholder="optional"
                         class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30">
                 </div>
@@ -235,16 +240,13 @@
         (function(){
             "use strict";
 
-            // -----------------------------------------------------------------
-            // YOUR EXISTING BIOMETRIC CAPTURE CODE – with OPTIMIZED IMAGE RESIZE
-            // -----------------------------------------------------------------
-            
+            // ---------- MODEL CDNs with fallback ----------
             const MODEL_URLS = [
                 'https://justadudewhohacks.github.io/face-api.js/models/',
                 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models/'
             ];
 
-            // DOM elements
+            // ---------- DOM elements ----------
             const screens = {
                 loading: document.getElementById('screen-loading'),
                 camera: document.getElementById('screen-camera'),
@@ -264,7 +266,7 @@
             const resultThumb = document.getElementById('result-thumb-canvas');
             const cameraContainer = document.getElementById('camera-container');
 
-            // State
+            // ---------- STATE ----------
             let modelsReady = false;
             let offlineMode = false;
             let cameraActive = false;
@@ -274,9 +276,7 @@
             let modelTimeout = null;
             const analysisData = {};
 
-            // -----------------------------------------------------------------
-            // LOAD MODELS (with 5s timeout & fallback)
-            // -----------------------------------------------------------------
+            // ---------- LOAD MODELS WITH 5s TIMEOUT ----------
             async function loadFaceModels() {
                 setTimeout(() => showScreen('camera'), 100);
                 modelTimeout = setTimeout(() => {
@@ -341,9 +341,7 @@
                 throw new Error(`All CDNs failed for ${netName}`);
             }
 
-            // -----------------------------------------------------------------
-            // CAMERA & DETECTION
-            // -----------------------------------------------------------------
+            // ---------- START CAMERA ----------
             async function startCamera() {
                 if (cameraActive && currentStream?.active) return;
                 try {
@@ -375,6 +373,7 @@
                 }
             }
 
+            // ---------- DETECTION LOOP (throttled) ----------
             async function detectionLoop(now) {
                 if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode || !modelsReady) {
                     requestAnimationFrame(detectionLoop);
@@ -440,9 +439,7 @@
                 requestAnimationFrame(detectionLoop);
             }
 
-            // -----------------------------------------------------------------
-            // CAPTURE & 22‑POINT ANALYSIS + IMAGE RESIZE (OPTIMIZED)
-            // -----------------------------------------------------------------
+            // ---------- 🚀 CAPTURE + OPTIMIZED IMAGE COMPRESSION ----------
             captureBtn.onclick = async function() {
                 if (captureBtn.disabled || isAnalyzing) return;
                 
@@ -452,6 +449,7 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
+                // ----- ORIGINAL CAPTURE (mirrored) -----
                 let captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -460,7 +458,7 @@
                 capCtx.scale(-1, 1);
                 capCtx.drawImage(video, 0, 0);
                 
-                // ---------- 🚀 OPTIMIZATION: RESIZE IMAGE (max width 640px) ----------
+                // ----- 🔥 RESIZE (max width 640px) -----
                 const MAX_WIDTH = 640;
                 let width = captureCanvas.width;
                 let height = captureCanvas.height;
@@ -473,9 +471,9 @@
                     resizedCanvas.getContext('2d').drawImage(captureCanvas, 0, 0, width, height);
                     captureCanvas = resizedCanvas;
                 }
-                // ---------- END RESIZE ----------
                 
-                const base64Image = captureCanvas.toDataURL('image/jpeg', 0.7); // quality 0.7 = smaller file
+                // ----- 🔥 COMPRESS (quality 0.7) -----
+                const base64Image = captureCanvas.toDataURL('image/jpeg', 0.7);
                 
                 const now = new Date();
                 const metrics = {
@@ -485,7 +483,7 @@
                     imageBase64: base64Image
                 };
 
-                // Run AI analysis if models ready
+                // ----- AI ANALYSIS (if models ready) -----
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
@@ -554,7 +552,7 @@
                     }
                 }
                 
-                // Fallback values
+                // ----- FALLBACK VALUES -----
                 if (!metrics.age) metrics.age = '--';
                 if (!metrics.gender) metrics.gender = '--';
                 if (!metrics.pd) metrics.pd = '62 mm';
@@ -570,7 +568,7 @@
                 
                 Object.assign(analysisData, metrics);
                 
-                // Update UI
+                // ----- UPDATE UI -----
                 document.getElementById('out-age').innerHTML = metrics.age;
                 document.getElementById('out-gender').innerHTML = metrics.gender;
                 document.getElementById('out-size').innerText = metrics.frameSize;
@@ -594,9 +592,7 @@
                 showScreen('results');
             };
 
-            // -----------------------------------------------------------------
-            // 🚀 FORM SUBMISSION – google.script.run (NO CORS, NO fetch)
-            // -----------------------------------------------------------------
+            // ---------- 🚀 FORM SUBMISSION – google.script.run (NO CORS) ----------
             window.handleFormSubmit = function(event) {
                 event.preventDefault();
                 
@@ -670,9 +666,7 @@
                     .processSubmission(payload);
             };
 
-            // -----------------------------------------------------------------
-            // UI HELPERS
-            // -----------------------------------------------------------------
+            // ---------- UI HELPERS ----------
             window.showScreen = function(id) {
                 Object.values(screens).forEach(s => s.classList.add('state-hidden'));
                 document.getElementById(`screen-${id}`).classList.remove('state-hidden');
@@ -689,9 +683,7 @@
             window.closeForm = () => document.getElementById('modal-form').classList.add('state-hidden');
             document.getElementById('btn-open-form').onclick = window.openForm;
 
-            // -----------------------------------------------------------------
-            // BOOT
-            // -----------------------------------------------------------------
+            // ---------- BOOT ----------
             loadFaceModels();
         })();
     </script>
