@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* === YOUR EXACT EXISTING STYLES – no changes needed === */
+        /* === YOUR EXACT STYLES – unchanged === */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: 'Inter', sans-serif;
@@ -57,7 +57,7 @@
 </head>
 <body class="no-scrollbar">
 
-    <!-- === YOUR EXISTING HEADER === -->
+    <!-- === HEADER === -->
     <header class="w-full px-4 pt-5 pb-2 flex items-center justify-between z-50">
         <div class="flex items-center gap-2.5 font-extrabold text-xl">
             <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-2xl shadow-2xl">
@@ -76,7 +76,7 @@
 
     <main class="flex-1 w-full max-w-lg mx-auto flex flex-col items-center px-4 relative z-10">
 
-        <!-- === LOADING SCREEN (unchanged) === -->
+        <!-- === LOADING SCREEN === -->
         <div id="screen-loading" class="w-full flex flex-col items-center justify-center h-[70vh]">
             <div class="neural-loader w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 animate-spin"></div>
             <p class="text-xl font-semibold mt-6 text-white/90">Biometric core</p>
@@ -87,7 +87,7 @@
             <button id="retry-models" class="mt-8 text-sm text-blue-400 hidden">retry ⚡</button>
         </div>
 
-        <!-- === CAMERA SCREEN (unchanged) === -->
+        <!-- === CAMERA SCREEN === -->
         <div id="screen-camera" class="w-full flex flex-col items-center state-hidden">
             <div id="guidance" class="mb-5 px-6 py-3 rounded-2xl glass-panel text-sm font-semibold flex items-center gap-2 border shadow-lg">
                 <i class="ph ph-camera text-blue-400"></i>
@@ -119,7 +119,7 @@
             </p>
         </div>
 
-        <!-- === RESULTS SCREEN (unchanged) === -->
+        <!-- === RESULTS SCREEN === -->
         <div id="screen-results" class="w-full flex flex-col items-center state-hidden">
             <div class="text-center mb-5">
                 <div class="inline-flex items-center justify-center p-3 bg-blue-500/20 rounded-full mb-2 ring-4 ring-blue-500/20">
@@ -188,7 +188,7 @@
         </div>
     </main>
 
-    <!-- === PROFILE MODAL – SUBMIT NOW USES google.script.run === -->
+    <!-- === PROFILE MODAL – SUBMIT USING google.script.run === -->
     <div id="modal-form" class="fixed inset-0 z-[100] flex items-end state-hidden">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeForm()"></div>
         <div class="relative bottom-sheet w-full max-w-lg mx-auto p-7 pb-10 shadow-2xl animate-[slideUp_0.25s_ease-out]">
@@ -201,7 +201,6 @@
                 </button>
             </div>
             
-            <!-- ⚠️ IMPORTANT: form has NO action, NO method, NO fetch – uses google.script.run -->
             <form id="final-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
                 <div>
                     <label class="text-[11px] font-bold text-slate-400 uppercase ml-1">full name *</label>
@@ -214,7 +213,7 @@
                         class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30">
                 </div>
                 <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1">ward / location</label>
+                    <label class="text-[11px]font-bold text-slate-400 uppercase ml-1">ward / location</label>
                     <input type="text" id="in-ward" name="ward" placeholder="optional"
                         class="w-full bg-slate-800/70 border border-white/10 rounded-2xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30">
                 </div>
@@ -237,8 +236,7 @@
             "use strict";
 
             // -----------------------------------------------------------------
-            // YOUR EXISTING BIOMETRIC CAPTURE CODE – FULLY INTACT
-            // Model loading, camera, detection, capture, analysis – unchanged
+            // YOUR EXISTING BIOMETRIC CAPTURE CODE – with OPTIMIZED IMAGE RESIZE
             // -----------------------------------------------------------------
             
             const MODEL_URLS = [
@@ -246,7 +244,7 @@
                 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models/'
             ];
 
-            // DOM elements (your existing selectors)
+            // DOM elements
             const screens = {
                 loading: document.getElementById('screen-loading'),
                 camera: document.getElementById('screen-camera'),
@@ -274,12 +272,10 @@
             let currentStream = null;
             let lastDetect = 0;
             let modelTimeout = null;
-            
-            // YOUR EXISTING analysisData object – holds all biometrics + image
             const analysisData = {};
 
             // -----------------------------------------------------------------
-            // LOAD MODELS (with timeout, fallback) – YOUR EXISTING CODE
+            // LOAD MODELS (with 5s timeout & fallback)
             // -----------------------------------------------------------------
             async function loadFaceModels() {
                 setTimeout(() => showScreen('camera'), 100);
@@ -346,7 +342,7 @@
             }
 
             // -----------------------------------------------------------------
-            // CAMERA & DETECTION – YOUR EXISTING CODE (unchanged)
+            // CAMERA & DETECTION
             // -----------------------------------------------------------------
             async function startCamera() {
                 if (cameraActive && currentStream?.active) return;
@@ -445,8 +441,7 @@
             }
 
             // -----------------------------------------------------------------
-            // CAPTURE & 22‑POINT ANALYSIS – YOUR EXISTING CODE (unchanged)
-            // Stores results + image in analysisData
+            // CAPTURE & 22‑POINT ANALYSIS + IMAGE RESIZE (OPTIMIZED)
             // -----------------------------------------------------------------
             captureBtn.onclick = async function() {
                 if (captureBtn.disabled || isAnalyzing) return;
@@ -457,14 +452,30 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                const captureCanvas = document.createElement('canvas');
+                let captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
                 const capCtx = captureCanvas.getContext('2d');
                 capCtx.translate(captureCanvas.width, 0);
                 capCtx.scale(-1, 1);
                 capCtx.drawImage(video, 0, 0);
-                const base64Image = captureCanvas.toDataURL('image/jpeg', 0.9);
+                
+                // ---------- 🚀 OPTIMIZATION: RESIZE IMAGE (max width 640px) ----------
+                const MAX_WIDTH = 640;
+                let width = captureCanvas.width;
+                let height = captureCanvas.height;
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                    const resizedCanvas = document.createElement('canvas');
+                    resizedCanvas.width = width;
+                    resizedCanvas.height = height;
+                    resizedCanvas.getContext('2d').drawImage(captureCanvas, 0, 0, width, height);
+                    captureCanvas = resizedCanvas;
+                }
+                // ---------- END RESIZE ----------
+                
+                const base64Image = captureCanvas.toDataURL('image/jpeg', 0.7); // quality 0.7 = smaller file
                 
                 const now = new Date();
                 const metrics = {
@@ -474,6 +485,7 @@
                     imageBase64: base64Image
                 };
 
+                // Run AI analysis if models ready
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
@@ -558,6 +570,7 @@
                 
                 Object.assign(analysisData, metrics);
                 
+                // Update UI
                 document.getElementById('out-age').innerHTML = metrics.age;
                 document.getElementById('out-gender').innerHTML = metrics.gender;
                 document.getElementById('out-size').innerText = metrics.frameSize;
@@ -582,8 +595,7 @@
             };
 
             // -----------------------------------------------------------------
-            // 🟢🟢🟢 THE KEY CHANGE: FORM SUBMISSION – NO fetch(), NO CORS
-            // Uses google.script.run to call Apps Script backend
+            // 🚀 FORM SUBMISSION – google.script.run (NO CORS, NO fetch)
             // -----------------------------------------------------------------
             window.handleFormSubmit = function(event) {
                 event.preventDefault();
@@ -591,20 +603,17 @@
                 const submitBtn = document.getElementById('btn-submit');
                 const statusEl = document.getElementById('form-status');
                 
-                // Get form values
                 const name = document.getElementById('in-name').value.trim();
                 const phone = document.getElementById('in-phone').value.trim();
                 const ward = document.getElementById('in-ward').value.trim() || '—';
                 const power = document.getElementById('in-power').value.trim() || '—';
                 
-                // Validate
                 if (!name || !phone) {
                     statusEl.innerHTML = '❌ Name and phone are required';
                     statusEl.style.color = '#ef4444';
                     return;
                 }
                 
-                // Build payload – merges form fields + biometrics + image
                 const payload = {
                     name: name,
                     phone: phone,
@@ -627,16 +636,11 @@
                     imageBase64: analysisData.imageBase64 || ''
                 };
                 
-                // Disable button, show spinner
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-xl"></i> SAVING ...`;
                 statusEl.innerHTML = '⏳ Submitting to Google Sheets...';
                 statusEl.style.color = '#94a3b8';
                 
-                // -----------------------------------------------------------------
-                // 🚀 THE MAGIC: google.script.run – NO CORS, NO fetch()
-                // Calls processSubmission() in Code.gs with the payload
-                // -----------------------------------------------------------------
                 google.script.run
                     .withSuccessHandler(function(response) {
                         submitBtn.disabled = false;
@@ -645,8 +649,6 @@
                         if (response.success) {
                             statusEl.innerHTML = '✅ ' + response.message;
                             statusEl.style.color = '#10b981';
-                            
-                            // Optional: close modal and reset after 2 seconds
                             setTimeout(() => {
                                 closeForm();
                                 resetToCamera();
@@ -659,17 +661,17 @@
                         }
                     })
                     .withFailureHandler(function(error) {
-                        console.error('google.script.run error:', error);
+                        console.error(error);
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = `<i class="ph ph-cloud-arrow-up text-xl"></i> ENCRYPT & SAVE`;
                         statusEl.innerHTML = '❌ Connection error – check deployment';
                         statusEl.style.color = '#ef4444';
                     })
-                    .processSubmission(payload); // <-- your Apps Script function
+                    .processSubmission(payload);
             };
 
             // -----------------------------------------------------------------
-            // UI HELPERS – unchanged
+            // UI HELPERS
             // -----------------------------------------------------------------
             window.showScreen = function(id) {
                 Object.values(screens).forEach(s => s.classList.add('state-hidden'));
