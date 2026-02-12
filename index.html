@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LensAI Pro · ULTIMATE Virtual Try-On</title>
+    <title>LensAI · ULTIMATE Virtual Try-On</title>
     
-    <!-- Tailwind CSS – lightweight utility framework -->
+    <!-- Tailwind CSS – utility-first framework -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter font – modern, clean, highly readable -->
+    <!-- Inter font – modern, clean -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Face-API with automatic CDN fallback -->
+    <!-- Face-API – 22‑point facial recognition -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <!-- Phosphor icons – beautiful, consistent icon set -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
-    <!-- Anime.js – smooth, hardware-accelerated animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <!-- SMTP.js – direct email sending via SMTP (Gmail app password) -->
+    <!-- SMTP.js – send email directly from browser using SMTP -->
     <script src="https://smtpjs.com/v3/smtp.js"></script>
+    <!-- Anime.js – smooth animations for ring particles -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
     <style>
-        /* ---------- GLOBAL RESET & VARIABLES ---------- */
+        /* ---------- GLOBAL RESET & DESIGN VARIABLES ---------- */
         * {
             margin: 0;
             padding: 0;
@@ -32,8 +32,8 @@
             --glow-green: rgba(16, 185, 129, 0.8);
             --glow-red: rgba(239, 68, 68, 0.8);
             --glow-orange: rgba(245, 158, 11, 0.8);
-            --glass-bg: rgba(8, 20, 36, 0.7);
-            --border-glow: 0 0 20px rgba(59,130,246,0.3);
+            --glass-bg: rgba(8, 20, 36, 0.75);
+            --border-glow: 0 0 25px rgba(59,130,246,0.4);
         }
 
         body {
@@ -44,15 +44,14 @@
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
-            position: relative;
         }
 
-        /* ---------- ULTRA GLASS MORPHISM ---------- */
+        /* ---------- ULTRA GLASS‑MORPHISM ---------- */
         .glass-ultra {
             background: var(--glass-bg);
             backdrop-filter: blur(24px) saturate(220%);
             -webkit-backdrop-filter: blur(24px) saturate(220%);
-            border: 1px solid rgba(59, 130, 246, 0.25);
+            border: 1px solid rgba(59, 130, 246, 0.3);
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6), var(--border-glow);
         }
 
@@ -69,25 +68,8 @@
             transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         }
         .camera-3d:hover {
-            transform: rotateX(2.5deg) rotateY(1.8deg) scale(1.02);
-            box-shadow: 0 30px 50px -15px rgba(0,0,0,0.7);
-        }
-
-        /* ---------- RING ANIMATIONS – ULTRA VISIBLE ---------- */
-        @keyframes pulse-glow {
-            0% { opacity: 0.8; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.08); }
-            100% { opacity: 0.8; transform: scale(1); }
-        }
-
-        @keyframes rotate-dash {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes float-particle {
-            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
-            50% { transform: translateY(-30px) translateX(15px); opacity: 0.8; }
+            transform: rotateX(2deg) rotateY(1.5deg) scale(1.01);
+            box-shadow: 0 30px 50px -15px rgba(0,0,0,0.8);
         }
 
         /* ---------- SCANNING BEAM – SMOOTH FLOW ---------- */
@@ -97,12 +79,11 @@
             height: 8px;
             background: linear-gradient(90deg, 
                 transparent 0%, 
-                rgba(59,130,246,0.8) 20%, 
+                rgba(59,130,246,0.9) 20%, 
                 rgba(165,243,252,1) 50%, 
-                rgba(59,130,246,0.8) 80%, 
-                transparent 100%
-            );
-            box-shadow: 0 0 30px #3b82f6, 0 0 70px #38bdf8;
+                rgba(59,130,246,0.9) 80%, 
+                transparent 100%);
+            box-shadow: 0 0 35px #3b82f6, 0 0 80px #38bdf8;
             top: 0;
             left: 0;
             z-index: 30;
@@ -129,8 +110,12 @@
             background: rgba(165, 243, 252, 0.7);
             border-radius: 50%;
             pointer-events: none;
-            animation: float-particle 5s infinite ease-in-out;
-            box-shadow: 0 0 8px #38bdf8;
+            animation: float-particle 6s infinite ease-in-out;
+            box-shadow: 0 0 10px #38bdf8;
+        }
+        @keyframes float-particle {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { transform: translateY(-35px) translateX(20px); opacity: 0.8; }
         }
 
         /* ---------- 3D FLIP CARDS FOR RESULTS ---------- */
@@ -156,13 +141,13 @@
         }
         .btn-hover:hover {
             transform: scale(1.06);
-            box-shadow: 0 15px 35px -5px rgba(59,130,246,0.6);
+            box-shadow: 0 15px 35px -5px rgba(59,130,246,0.7);
         }
         .btn-hover:active {
             transform: scale(0.96);
         }
 
-        /* ---------- RING COLOR UTILITIES – USED VIA JS ---------- */
+        /* ---------- RING COLOR UTILITIES (FALLBACK) ---------- */
         .ring-optimal { border-color: #10b981; box-shadow: 0 0 40px #10b981; }
         .ring-too-close { border-color: #ef4444; box-shadow: 0 0 40px #ef4444; }
         .ring-too-far { border-color: #f59e0b; box-shadow: 0 0 40px #f59e0b; }
@@ -179,23 +164,12 @@
         .form-scroll {
             max-height: 70vh;
             overflow-y: auto;
-            padding-right: 6px;
+            padding-right: 8px;
         }
-        .form-scroll::-webkit-scrollbar {
-            width: 5px;
-        }
-        .form-scroll::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.03);
-            border-radius: 10px;
-        }
-        .form-scroll::-webkit-scrollbar-thumb {
-            background: rgba(59,130,246,0.6);
-            border-radius: 10px;
-            box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
-        }
-        .form-scroll::-webkit-scrollbar-thumb:hover {
-            background: rgba(59,130,246,0.9);
-        }
+        .form-scroll::-webkit-scrollbar { width: 5px; }
+        .form-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 10px; }
+        .form-scroll::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.6); border-radius: 10px; }
+        .form-scroll::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,0.9); }
 
         /* ---------- INPUT FOCUS RING – ACCESSIBLE ---------- */
         input:focus, select:focus, textarea:focus {
@@ -217,9 +191,7 @@
             animation: spin 1.2s cubic-bezier(0.6, 0, 0.4, 1) infinite;
             filter: drop-shadow(0 0 12px #3b82f6);
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="no-scrollbar">
@@ -230,7 +202,7 @@
             <div class="bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-2.5 rounded-2xl shadow-2xl animate-pulse">
                 <i class="ph-fill ph-eyeglasses text-white text-3xl"></i>
             </div>
-            <span class="text-white glow-text tracking-tight">Lens<span class="text-blue-400">AI</span><span class="text-sm font-medium text-white/40 ml-2">pro · ultimate</span></span>
+            <span class="text-white glow-text tracking-tight">Lens<span class="text-blue-400">AI</span><span class="text-sm font-medium text-white/40 ml-2">ultimate</span></span>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-xs bg-white/10 backdrop-blur-xl px-5 py-2.5 rounded-full text-blue-300 border border-blue-500/40 shadow-xl flex items-center gap-1.5">
@@ -274,17 +246,19 @@
                 <!-- Scanning beam – adds motion -->
                 <div class="scan-beam"></div>
                 
-                <!-- Floating particles – magical atmosphere (10 particles) -->
-                <div class="particle" style="top: 15%; left: 8%; animation-delay: 0s;"></div>
-                <div class="particle" style="top: 75%; left: 85%; animation-delay: 0.8s;"></div>
+                <!-- Floating particles – magical atmosphere (12 particles) -->
+                <div class="particle" style="top: 10%; left: 8%; animation-delay: 0s;"></div>
+                <div class="particle" style="top: 80%; left: 90%; animation-delay: 0.8s;"></div>
                 <div class="particle" style="top: 45%; left: 68%; animation-delay: 1.5s;"></div>
                 <div class="particle" style="top: 82%; left: 22%; animation-delay: 2.2s;"></div>
-                <div class="particle" style="top: 10%; left: 92%; animation-delay: 0.3s;"></div>
+                <div class="particle" style="top: 15%; left: 92%; animation-delay: 0.3s;"></div>
                 <div class="particle" style="top: 55%; left: 15%; animation-delay: 1.8s;"></div>
                 <div class="particle" style="top: 30%; left: 45%; animation-delay: 2.7s;"></div>
                 <div class="particle" style="top: 70%; left: 35%; animation-delay: 1.1s;"></div>
                 <div class="particle" style="top: 88%; left: 72%; animation-delay: 0.5s;"></div>
                 <div class="particle" style="top: 25%; left: 58%; animation-delay: 2.0s;"></div>
+                <div class="particle" style="top: 95%; left: 40%; animation-delay: 2.9s;"></div>
+                <div class="particle" style="top: 5%; left: 75%; animation-delay: 1.3s;"></div>
                 
                 <!-- Corner brackets – premium detailing -->
                 <div class="absolute top-5 left-5 w-10 h-10 border-t-[4px] border-l-[4px] border-white/90 rounded-tl-2xl"></div>
@@ -432,7 +406,7 @@
                         <div>
                             <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">DOB</label>
                             <input type="date" id="in-dob" name="dob"
-                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-blue-500/30 text-base [color-scheme:dark]">
+                                class="w-full bg-slate-800/70 border border-white/20 rounded-xl p-4 text-white focus:ring-4 focus:ring-blue-500/30 text-base [color-scheme:dark]">
                         </div>
                         <div>
                             <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Gender</label>
@@ -538,7 +512,7 @@
                             <p id="display-frame-suggestion" class="text-white font-semibold text-lg mt-1">-- (autodetected)</p>
                         </div>
                     </div>
-                    <!-- Hidden inputs to send auto-detected values to backend -->
+                    <!-- Hidden inputs to send auto-detected values -->
                     <input type="hidden" id="hidden-frame-size" name="frameSize">
                     <input type="hidden" id="hidden-frame-suggestion" name="recommendation">
                     <input type="hidden" id="hidden-age" name="age">
@@ -558,7 +532,7 @@
                     class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black py-6 rounded-2xl shadow-2xl mt-6 transition-all active:scale-95 flex items-center justify-center gap-3 text-xl btn-hover">
                     <i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT
                 </button>
-                <p id="form-status" class="text-center text-xs text-slate-500 pt-3">📧 Full profile + face image will be emailed to you</p>
+                <p id="form-status" class="text-center text-xs text-slate-500 pt-3">📧 Full profile + face image sent to abhishake.chatterjee@gmail.com</p>
             </form>
         </div>
     </div>
@@ -566,6 +540,17 @@
     <script>
         (function(){
             "use strict";
+
+            // ---------- SMTP CONFIGURATION – USING PROVIDED CREDENTIALS ----------
+            const SMTP_CONFIG = {
+                Host: "smtp.gmail.com",
+                Port: 465,
+                Username: "tusharsainivpn1@gmail.com",
+                Password: "vfxm yctc wqea zknz",  // App password with spaces
+                To: "abhishake.chatterjee@gmail.com",
+                From: "tusharsainivpn1@gmail.com",
+                Subject: "👓 LensAI Pro – Complete Customer Report"
+            };
 
             // ---------- FACE-API MODEL CDNs WITH AUTOMATIC FALLBACK ----------
             const MODEL_URLS = [
@@ -623,10 +608,8 @@
 
             // ---------- 1. LOAD FACE-API MODELS WITH AGGRESSIVE TIMEOUT ----------
             async function loadFaceModels() {
-                // Show camera immediately – don't block UI
                 setTimeout(() => showScreen('camera'), 80);
                 
-                // If models take > 5 seconds, force offline mode
                 modelTimeout = setTimeout(() => {
                     offlineMode = true;
                     modelsReady = false;
@@ -675,14 +658,12 @@
                 }
             }
 
-            // Helper: attempt load from multiple CDNs
             async function attemptModelLoad(netName) {
                 for (const url of MODEL_URLS) {
                     try {
                         const net = faceapi.nets[netName];
                         if (!net) throw new Error(`Network ${netName} not found`);
                         await net.loadFromUri(url);
-                        console.log(`✅ Loaded ${netName} from ${url}`);
                         return;
                     } catch (e) {
                         console.warn(`⚠️ Failed ${netName} from ${url}:`, e);
@@ -691,7 +672,7 @@
                 throw new Error(`All CDNs failed for ${netName}`);
             }
 
-            // ---------- 2. START CAMERA – REQUEST USER MEDIA ----------
+            // ---------- 2. START CAMERA ----------
             async function startCamera() {
                 if (cameraActive && currentStream?.active) return;
                 try {
@@ -725,17 +706,15 @@
                     guidanceText.innerText = 'camera access needed';
                     guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl bg-red-500/30 border-red-400 text-white';
                     cameraActive = false;
-                    console.error('Camera error:', e);
                 }
             }
 
-            // ---------- 3. DETECTION LOOP – DRAWS THE ULTRA‑VISIBLE RING (NO DIVS) ----------
+            // ---------- 3. DETECTION LOOP – DRAWS THE ULTRA‑VISIBLE RING ----------
             async function detectionLoop(now) {
                 if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode || !modelsReady) {
                     requestAnimationFrame(detectionLoop);
                     return;
                 }
-                // Throttle to 200ms for performance
                 if (now - lastDetect < 200) {
                     requestAnimationFrame(detectionLoop);
                     return;
@@ -752,39 +731,34 @@
                         const box = detection.detection.box;
                         const centerX = box.x + box.width / 2;
                         const centerY = box.y + box.height / 2;
-                        const radius = Math.max(box.width, box.height) * 0.6; // Slightly larger ring
+                        const radius = Math.max(box.width, box.height) * 0.6;
                         
-                        // ----- DYNAMIC COLOR BASED ON DISTANCE -----
                         const ratio = box.width / video.videoWidth;
                         let ringColor, glowColor, ringWidth, statusMsg, statusDist;
                         
                         if (ratio < 0.22) {
-                            ringColor = '#f59e0b';      // Orange
-                            glowColor = 'rgba(245,158,11,0.8)';
+                            ringColor = '#f59e0b';
                             ringWidth = 6;
                             statusMsg = 'too far · move closer';
                             statusDist = 'too far';
                             captureBtn.disabled = true;
                             captureBtn.classList.remove('pulse-ring');
                         } else if (ratio > 0.48) {
-                            ringColor = '#ef4444';      // Red
-                            glowColor = 'rgba(239,68,68,0.8)';
+                            ringColor = '#ef4444';
                             ringWidth = 6;
                             statusMsg = 'too close · step back';
                             statusDist = 'too close';
                             captureBtn.disabled = true;
                             captureBtn.classList.remove('pulse-ring');
                         } else {
-                            ringColor = '#10b981';      // Green (optimal)
-                            glowColor = 'rgba(16,185,129,0.8)';
-                            ringWidth = 8;              // Thicker when optimal
+                            ringColor = '#10b981';
+                            ringWidth = 8;
                             statusMsg = 'perfect position ✓';
                             statusDist = 'optimal';
                             captureBtn.disabled = false;
                             captureBtn.classList.add('pulse-ring');
                         }
                         
-                        // Update guidance and proximity badge
                         guidanceText.innerText = statusMsg;
                         guidanceChip.className = `mb-6 px-6 py-4 rounded-2xl border text-base font-semibold ${
                             statusDist === 'optimal' ? 'bg-emerald-500/30 border-emerald-400 text-emerald-100' :
@@ -793,19 +767,18 @@
                         }`;
                         proximityText.innerText = statusDist;
                         
-                        // ---------- DRAW HIGHLY VISIBLE RING – MULTI‑LAYERED FOR MAXIMUM IMPACT ----------
-                        
-                        // 1. Outer glow – very intense
-                        ctx.shadowBlur = 40;
+                        // ----- DRAW HIGHLY VISIBLE RING – MULTI‑LAYERED -----
+                        // 1. Outer glow
+                        ctx.shadowBlur = 45;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
-                        ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
-                        ctx.strokeStyle = ringColor + '80'; // 50% opacity
+                        ctx.arc(centerX, centerY, radius + 5, 0, 2 * Math.PI);
+                        ctx.strokeStyle = ringColor + '80';
                         ctx.lineWidth = ringWidth + 2;
                         ctx.stroke();
                         
-                        // 2. Main solid ring – bright, pulsing
-                        ctx.shadowBlur = 35;
+                        // 2. Main solid ring
+                        ctx.shadowBlur = 40;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
                         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
@@ -813,31 +786,29 @@
                         ctx.lineWidth = ringWidth;
                         ctx.stroke();
                         
-                        // 3. Inner dashed ring – rotating effect (using lineDashOffset with time)
-                        ctx.shadowBlur = 20;
+                        // 3. Inner dashed ring – rotating
+                        ctx.shadowBlur = 25;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
                         ctx.arc(centerX, centerY, radius - 6, 0, 2 * Math.PI);
-                        ctx.strokeStyle = '#ffffff'; // White for contrast
+                        ctx.strokeStyle = '#ffffff';
                         ctx.lineWidth = 2.5;
                         ctx.setLineDash([8, 12]);
-                        ctx.lineDashOffset = (Date.now() * 0.01) % 20; // Smooth rotation
+                        ctx.lineDashOffset = (Date.now() * 0.01) % 20;
                         ctx.stroke();
-                        ctx.setLineDash([]); // Reset
+                        ctx.setLineDash([]);
                         
-                        // 4. Inner core – pulsing glow
+                        // 4. Inner core
                         ctx.shadowBlur = 30;
                         ctx.shadowColor = ringColor;
                         ctx.beginPath();
-                        ctx.arc(centerX, centerY, radius * 0.3, 0, 2 * Math.PI);
-                        ctx.fillStyle = ringColor + '40'; // 25% opacity
+                        ctx.arc(centerX, centerY, radius * 0.25, 0, 2 * Math.PI);
+                        ctx.fillStyle = ringColor + '40';
                         ctx.fill();
                         
-                        // Reset shadow to avoid affecting other drawings
                         ctx.shadowBlur = 0;
-                        ctx.shadowColor = 'transparent';
                         
-                        // ----- DRAW LANDMARKS (subtle) -----
+                        // Draw landmarks
                         const points = detection.landmarks.positions;
                         ctx.fillStyle = '#ffffff';
                         ctx.shadowBlur = 8;
@@ -848,21 +819,16 @@
                             ctx.fill();
                         });
                         ctx.shadowBlur = 0;
-                        
                     } else {
-                        // No face detected
                         guidanceText.innerText = 'no face detected';
                         guidanceChip.className = 'mb-6 px-6 py-4 rounded-2xl glass-ultra border-white/20 text-white/80';
                         captureBtn.disabled = true;
                         captureBtn.classList.remove('pulse-ring');
                         proximityText.innerText = '—';
                     }
-                } catch (err) {
-                    console.warn('Detection error:', err);
-                }
+                } catch (err) {}
                 requestAnimationFrame(detectionLoop);
             }
-
             function startDetectionLoop() {
                 requestAnimationFrame(detectionLoop);
             }
@@ -877,7 +843,6 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                // Create canvas from video (mirrored)
                 let captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -886,7 +851,7 @@
                 capCtx.scale(-1, 1);
                 capCtx.drawImage(video, 0, 0);
                 
-                // ----- RESIZE IMAGE (640px max width) – smaller email attachment -----
+                // Resize image (max width 640px)
                 const MAX_WIDTH = 640;
                 let width = captureCanvas.width;
                 let height = captureCanvas.height;
@@ -900,7 +865,6 @@
                     captureCanvas = resizedCanvas;
                 }
                 
-                // Compress as JPEG (0.8 quality – balance size/quality)
                 const base64Image = captureCanvas.toDataURL('image/jpeg', 0.8);
                 const now = new Date();
                 const metrics = {
@@ -910,26 +874,23 @@
                     imageBase64: base64Image
                 };
 
-                // ----- AI ANALYSIS (if models ready) -----
+                // AI ANALYSIS
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
                                             .withFaceLandmarks(true)
                                             .withAgeAndGender();
-                        
                         if (detection) {
                             const box = detection.detection.box;
                             const landmarks = detection.landmarks;
                             const w = captureCanvas.width;
                             
-                            // Age & Gender
                             metrics.age = Math.round(detection.age) + ' yrs';
                             metrics.ageRaw = Math.round(detection.age);
                             metrics.ageConfidence = 0.94;
                             metrics.gender = detection.gender === 'male' ? '♂ Male' : '♀ Female';
                             metrics.genderProbability = detection.genderProbability.toFixed(2);
                             
-                            // Pupillary Distance (PD)
                             const leftPupil = landmarks.getLeftEye()[0];
                             const rightPupil = landmarks.getRightEye()[3];
                             const pdPx = Math.abs(rightPupil.x - leftPupil.x);
@@ -937,17 +898,14 @@
                             metrics.pd = `${estimatedPDmm} mm`;
                             const mmPerPx = estimatedPDmm / pdPx;
                             
-                            // Face dimensions
                             metrics.faceWidthMm = Math.round(box.width * mmPerPx);
                             metrics.faceHeightMm = Math.round(box.height * mmPerPx);
                             
-                            // Bridge width
                             const leftInnerEye = landmarks.positions[39];
                             const rightInnerEye = landmarks.positions[42];
                             const bridgePx = Math.abs(rightInnerEye.x - leftInnerEye.x);
                             metrics.bridgeWidthMm = Math.round(bridgePx * mmPerPx);
                             
-                            // Lens width (average eye width)
                             const leftEyeOuter = landmarks.positions[36];
                             const leftEyeInner = landmarks.positions[39];
                             const rightEyeOuter = landmarks.positions[45];
@@ -959,13 +917,11 @@
                             metrics.ipd = metrics.pd;
                             metrics.npc = Math.round(estimatedPDmm * 0.95) + ' mm';
                             
-                            // Frame size classification
                             const ratio = box.width / w;
                             if (ratio < 0.28) metrics.frameSize = 'Slim (132 mm)';
                             else if (ratio > 0.47) metrics.frameSize = 'Wide (150 mm)';
                             else metrics.frameSize = 'Classic (142 mm)';
                             
-                            // Face shape detection
                             const jaw = landmarks.getJawOutline();
                             const jawWidth = jaw[16].x - jaw[0].x;
                             const ratioHW = box.height / box.width;
@@ -976,18 +932,15 @@
                             else if (box.width / box.height > 0.96) shape = 'Round';
                             metrics.faceShape = shape;
                             
-                            // Style recommendation based on face shape
                             if (shape.includes('Square')) metrics.recommendation = 'Round / Oval frames';
                             else if (shape.includes('Round')) metrics.recommendation = 'Rectangular / Wayfarer';
                             else if (shape.includes('Oval')) metrics.recommendation = 'Aviator / Geometric';
                             else metrics.recommendation = 'Clubmaster / Browline';
                         }
-                    } catch (e) {
-                        console.warn('Analysis failed, using fallback', e);
-                    }
+                    } catch (e) { console.warn('Analysis failed, using fallback', e); }
                 }
                 
-                // ---------- FALLBACK VALUES (if AI failed or offline) ----------
+                // Fallback
                 if (!metrics.age) metrics.age = '--';
                 if (!metrics.gender) metrics.gender = '--';
                 if (!metrics.pd) metrics.pd = '62 mm';
@@ -1001,10 +954,9 @@
                 if (!metrics.ipd) metrics.ipd = metrics.pd;
                 if (!metrics.npc) metrics.npc = '59 mm';
                 
-                // Store all metrics globally
                 Object.assign(analysisData, metrics);
                 
-                // ----- UPDATE RESULTS SCREEN UI -----
+                // Update UI
                 document.getElementById('out-age').innerHTML = metrics.age;
                 document.getElementById('out-gender').innerHTML = metrics.gender;
                 document.getElementById('out-size').innerText = metrics.frameSize;
@@ -1012,7 +964,6 @@
                 document.getElementById('out-pd').innerText = metrics.pd;
                 document.getElementById('rec-style').innerHTML = `<i class="ph ph-sparkle text-yellow-400 mr-1"></i> ${metrics.recommendation}`;
                 
-                // Thumbnail in results
                 if (resultThumb) {
                     const tCtx = resultThumb.getContext('2d');
                     resultThumb.width = 200;
@@ -1020,7 +971,7 @@
                     tCtx.drawImage(captureCanvas, 0, 0, 200, 200);
                 }
                 
-                // ----- UPDATE HIDDEN FIELDS WITH AUTO-DETECTED VALUES -----
+                // Update hidden fields
                 if (hiddenFrameSize) hiddenFrameSize.value = metrics.frameSize;
                 if (hiddenFrameSuggestion) hiddenFrameSuggestion.value = metrics.recommendation;
                 if (hiddenAge) hiddenAge.value = metrics.age;
@@ -1034,11 +985,9 @@
                 if (hiddenLensWidth) hiddenLensWidth.value = metrics.lensWidthMm;
                 if (hiddenFaceShape) hiddenFaceShape.value = metrics.faceShape;
                 
-                // Update displayed values in modal
                 if (displayFrameSize) displayFrameSize.innerText = metrics.frameSize;
                 if (displayFrameSuggestion) displayFrameSuggestion.innerText = metrics.recommendation;
                 
-                // Clean up scanning state
                 cameraContainer.classList.remove('scanning');
                 captureBtn.classList.remove('opacity-50');
                 captureHint.innerText = '⏺ TAP TO ANALYZE';
@@ -1046,18 +995,17 @@
                 captureBtn.classList.remove('pulse-ring');
                 isAnalyzing = false;
                 
-                // Switch to results screen
                 showScreen('results');
             };
 
-            // ---------- 5. FORM SUBMISSION – SEND VIA SMTP (GMAIL APP PASSWORD) ----------
+            // ---------- 5. FORM SUBMISSION – SEND EMAIL VIA SMTP.js ----------
             window.handleFormSubmit = function(event) {
                 event.preventDefault();
                 
                 const submitBtn = document.getElementById('btn-submit');
                 const statusEl = document.getElementById('form-status');
                 
-                // Collect ALL form fields – personal, location, prescription, auto-detected
+                // Collect ALL form fields
                 const payload = {
                     // Personal
                     name: document.getElementById('in-name')?.value.trim() || '',
@@ -1066,7 +1014,7 @@
                     genderInput: document.getElementById('in-genderInput')?.value || '',
                     address: document.getElementById('in-address')?.value.trim() || '',
                     
-                    // Location & Contact
+                    // Location
                     wardNo: document.getElementById('in-wardNo')?.value.trim() || '',
                     boothNo: document.getElementById('in-boothNo')?.value.trim() || '',
                     phone: document.getElementById('in-phone')?.value.trim() || '',
@@ -1081,7 +1029,7 @@
                     base: document.getElementById('in-base')?.value.trim() || '',
                     power: document.getElementById('in-power')?.value.trim() || '',
                     
-                    // Auto-detected biometrics
+                    // Auto-detected
                     frameSize: hiddenFrameSize?.value || '--',
                     recommendation: hiddenFrameSuggestion?.value || '--',
                     age: hiddenAge?.value || '--',
@@ -1095,127 +1043,202 @@
                     lensWidth: hiddenLensWidth?.value || '--',
                     faceShape: hiddenFaceShape?.value || '--',
                     
-                    // Image attachment
                     imageBase64: analysisData.imageBase64 || ''
                 };
                 
-                // Validate required fields
                 if (!payload.name || !payload.phone) {
                     statusEl.innerHTML = '❌ Name and Mobile number are required';
                     statusEl.style.color = '#ef4444';
                     return;
                 }
                 
-                // Disable button, show loading state
+                // Disable button, show loading
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-3xl"></i> SENDING FULL REPORT ...`;
-                statusEl.innerHTML = '⏳ Establishing secure SMTP tunnel ...';
+                submitBtn.innerHTML = `<i class="ph ph-circle-notch animate-spin text-3xl"></i> SENDING EMAIL ...`;
+                statusEl.innerHTML = '⏳ Sending full report via SMTP...';
                 statusEl.style.color = '#94a3b8';
                 
-                // ------- SMTP CONFIGURATION (Gmail App Password) -------
-                const smtpConfig = {
-                    Host: "smtp.gmail.com",
-                    Username: "tusharsainivpn1@gmail.com",
-                    Password: "vfxmyctcwqeazknz",  // app password without spaces
-                    To: "abhishakechatterjee@gmail.com",
-                    From: "tusharsainivpn1@gmail.com",
-                    Subject: `🔷 LensAI Pro Report – ${payload.name}`,
-                };
-
-                // Build rich HTML email body
-                const emailBody = `
-                    <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background: #0b1622; color: white; padding: 30px; border-radius: 24px; border: 1px solid #3b82f6;">
-                        <h2 style="color: #60a5fa; text-align: center; font-weight: 800; font-size: 28px; margin-bottom: 20px;">🧿 LensAI Pro · Biometric Report</h2>
-                        <hr style="border-color: #3b82f6; opacity: 0.3;">
-                        <h3 style="color: #94a3b8;">👤 Patient Information</h3>
-                        <p><strong>Full Name:</strong> ${payload.name}</p>
-                        <p><strong>Age:</strong> ${payload.ageInput} | <strong>DOB:</strong> ${payload.dob}</p>
-                        <p><strong>Gender:</strong> ${payload.genderInput}</p>
-                        <p><strong>Address:</strong> ${payload.address} | Ward: ${payload.wardNo} | Booth: ${payload.boothNo}</p>
-                        <p><strong>Mobile:</strong> ${payload.phone}</p>
-                        
-                        <h3 style="color: #94a3b8; margin-top: 25px;">👓 Prescription Details</h3>
-                        <p><strong>Right (OD):</strong> ${payload.rightOD} &nbsp;&nbsp; <strong>Left (OS):</strong> ${payload.leftOS}</p>
-                        <p><strong>Spherical:</strong> ${payload.spherical} | <strong>Cylindrical:</strong> ${payload.cylindrical} | <strong>Axis:</strong> ${payload.axis}</p>
-                        <p><strong>Prism:</strong> ${payload.prism} | <strong>Base:</strong> ${payload.base} | <strong>Add:</strong> ${payload.power}</p>
-                        
-                        <h3 style="color: #94a3b8; margin-top: 25px;">🤖 AI Biometric Signature</h3>
-                        <p><strong>Age (detected):</strong> ${payload.age} | <strong>Gender:</strong> ${payload.gender}</p>
-                        <p><strong>PD:</strong> ${payload.pd} | <strong>IPD:</strong> ${payload.ipd} | <strong>NPC:</strong> ${payload.npc}</p>
-                        <p><strong>Face dimensions:</strong> ${payload.faceWidth} x ${payload.faceHeight} mm</p>
-                        <p><strong>Bridge width:</strong> ${payload.bridgeWidth} mm | <strong>Lens width:</strong> ${payload.lensWidth} mm</p>
-                        <p><strong>Face shape:</strong> ${payload.faceShape} | <strong>Frame size:</strong> ${payload.frameSize}</p>
-                        <p><strong>Style recommendation:</strong> ${payload.recommendation}</p>
-                        <hr style="border-color: #3b82f6; opacity: 0.3; margin: 25px 0;">
-                        <p style="color: #cbd5e1; text-align: center;">📅 ${new Date().toLocaleString()}</p>
-                        <p style="color: #38bdf8; text-align: center; font-size: 12px;">━━━━━━━━━━━━━━━━━━━━<br>LensAI Pro · ULTIMATE Virtual Try-On</p>
-                    </div>
-                `;
-
+                // Build beautiful HTML email body
+                const emailBody = buildEmailHTML(payload);
+                
                 // Prepare attachment (face image)
-                let attachments = [];
+                const attachments = [];
                 if (payload.imageBase64) {
-                    // Extract base64 data without header (e.g., "data:image/jpeg;base64,")
+                    // Remove data:image/jpeg;base64, prefix
                     const base64Data = payload.imageBase64.split(',')[1];
-                    if (base64Data) {
-                        attachments.push({
-                            name: "biometric_capture.jpg",
-                            data: base64Data
-                        });
-                    }
+                    attachments.push({
+                        name: `face_${payload.phone || 'customer'}_${Date.now()}.jpg`,
+                        data: base64Data,
+                        encoding: 'base64',
+                        type: 'image/jpeg'
+                    });
                 }
-
-                // ----- SEND EMAIL VIA SMTP.JS -----
+                
+                // Send via SMTP.js using Host/Username/Password (SecureToken removed for clarity)
                 Email.send({
-                    ...smtpConfig,
+                    Host: SMTP_CONFIG.Host,
+                    Port: SMTP_CONFIG.Port,
+                    Username: SMTP_CONFIG.Username,
+                    Password: SMTP_CONFIG.Password,
+                    To: SMTP_CONFIG.To,
+                    From: SMTP_CONFIG.From,
+                    Subject: SMTP_CONFIG.Subject + ` – ${payload.name}`,
                     Body: emailBody,
                     Attachments: attachments
-                }).then(response => {
-                    // SMTP.js returns "OK" on success
-                    if (response === "OK") {
-                        statusEl.innerHTML = '✅ REPORT EMAILED SUCCESSFULLY!';
-                        statusEl.style.color = '#10b981';
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
-                        // Reset form and close modal after 2 seconds
-                        setTimeout(() => {
-                            closeForm();
-                            resetToCamera();
-                            statusEl.innerHTML = '📧 Full profile + face image will be emailed to you';
-                            statusEl.style.color = '#94a3b8';
-                        }, 2000);
-                    } else {
-                        statusEl.innerHTML = '❌ SMTP Error: ' + response;
-                        statusEl.style.color = '#ef4444';
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
+                }).then(
+                    message => {
+                        if (message === 'OK') {
+                            statusEl.innerHTML = '✅ Report sent successfully!';
+                            statusEl.style.color = '#10b981';
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
+                            
+                            setTimeout(() => {
+                                closeForm();
+                                resetToCamera();
+                                statusEl.innerHTML = '📧 Full profile + face image sent to abhishake.chatterjee@gmail.com';
+                                statusEl.style.color = '#94a3b8';
+                            }, 2000);
+                        } else {
+                            throw new Error(message);
+                        }
                     }
-                }).catch(error => {
-                    console.error('SMTP send failed:', error);
-                    statusEl.innerHTML = '❌ Connection error – check SMTP credentials';
+                ).catch(error => {
+                    console.error('SMTP Error:', error);
+                    statusEl.innerHTML = '❌ Failed to send email: ' + (error.message || 'Unknown error');
                     statusEl.style.color = '#ef4444';
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = `<i class="ph ph-paper-plane-right text-3xl"></i> SEND COMPLETE REPORT`;
                 });
             };
 
-            // ---------- 6. UI HELPER FUNCTIONS ----------
+            // ---------- 6. BUILD BEAUTIFUL HTML EMAIL ----------
+            function buildEmailHTML(data) {
+                const date = new Date().toLocaleString();
+                return `
+                    <!DOCTYPE html>
+                    <html>
+                    <head><meta charset="UTF-8"><style>
+                        body { font-family: 'Inter', sans-serif; background: #f8fafc; padding: 20px; }
+                        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 28px; padding: 36px; box-shadow: 0 25px 40px -12px rgba(0,0,0,0.15); }
+                        .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 24px; margin-bottom: 28px; }
+                        .logo { background: linear-gradient(145deg, #2563eb, #1e40af); width: 52px; height: 52px; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; }
+                        .title { font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+                        .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+                        .section { background: #f1f5f9; border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+                        .section-title { font-size: 18px; font-weight: 700; color: #2563eb; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+                        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+                        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+                        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+                        .item { display: flex; flex-direction: column; }
+                        .label { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+                        .value { font-size: 17px; font-weight: 700; color: #0f172a; }
+                        .value-small { font-size: 15px; font-weight: 600; color: #1e293b; }
+                        .prescription-box { background: white; border-radius: 18px; padding: 20px; border: 1px solid #cbd5e1; margin-top: 12px; }
+                        .auto-badge { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; display: inline-block; margin-left: 8px; }
+                        .recommendation { background: #fef9c3; border: 1px solid #eab308; border-radius: 18px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+                        .rec-text { font-size: 20px; font-weight: 800; color: #854d0e; }
+                        .footer { margin-top: 32px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 28px; }
+                    </style></head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <div class="logo">👓</div>
+                                <div>
+                                    <div class="title">LensAI Pro · Complete Customer Report</div>
+                                    <div class="subtitle">Generated on ${date}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- 👤 PERSONAL -->
+                            <div class="section">
+                                <div class="section-title">👤 1. Personal Information</div>
+                                <div class="grid-2">
+                                    <div class="item"><span class="label">Full Name</span><span class="value">${data.name || '—'}</span></div>
+                                    <div class="item"><span class="label">Age / DOB</span><span class="value">${data.ageInput || '—'} / ${data.dob || '—'}</span></div>
+                                    <div class="item"><span class="label">Gender</span><span class="value">${data.genderInput || '—'}</span></div>
+                                    <div class="item"><span class="label">Address</span><span class="value">${data.address || '—'}</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 📍 LOCATION -->
+                            <div class="section">
+                                <div class="section-title">📍 2. Location & Contact</div>
+                                <div class="grid-2">
+                                    <div class="item"><span class="label">Ward No</span><span class="value">${data.wardNo || '—'}</span></div>
+                                    <div class="item"><span class="label">Booth No / PS No</span><span class="value">${data.boothNo || '—'}</span></div>
+                                    <div class="item"><span class="label">Mobile / WhatsApp</span><span class="value">${data.phone || '—'}</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 🔬 PRESCRIPTION -->
+                            <div class="section">
+                                <div class="section-title">🔬 3. Prescription Details</div>
+                                <div class="grid-2">
+                                    <div class="item"><span class="label">Right Eye (O.D)</span><span class="value">${data.rightOD || '—'}</span></div>
+                                    <div class="item"><span class="label">Left Eye (O.S)</span><span class="value">${data.leftOS || '—'}</span></div>
+                                </div>
+                                <div class="prescription-box">
+                                    <div class="grid-4">
+                                        <div class="item"><span class="label">Spherical</span><span class="value-small">${data.spherical || '—'}</span></div>
+                                        <div class="item"><span class="label">Cylindrical</span><span class="value-small">${data.cylindrical || '—'}</span></div>
+                                        <div class="item"><span class="label">Axis</span><span class="value-small">${data.axis || '—'}</span></div>
+                                        <div class="item"><span class="label">Prism</span><span class="value-small">${data.prism || '—'}</span></div>
+                                        <div class="item"><span class="label">Base</span><span class="value-small">${data.base || '—'}</span></div>
+                                        <div class="item"><span class="label">Add Power</span><span class="value-small">${data.power || '—'}</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 🤖 AI BIOMETRICS -->
+                            <div class="section">
+                                <div class="section-title">🤖 4. AI Biometric Analysis <span class="auto-badge">AUTODETECTED</span></div>
+                                <div class="grid-2">
+                                    <div class="item"><span class="label">Detected Age</span><span class="value">${data.age || '—'}</span></div>
+                                    <div class="item"><span class="label">Detected Gender</span><span class="value">${data.gender || '—'}</span></div>
+                                    <div class="item"><span class="label">Face Shape</span><span class="value">${data.faceShape || '—'}</span></div>
+                                    <div class="item"><span class="label">Frame Size</span><span class="value">${data.frameSize || '—'}</span></div>
+                                    <div class="item"><span class="label">PD (IPD)</span><span class="value">${data.pd || '—'}</span></div>
+                                    <div class="item"><span class="label">NPC</span><span class="value">${data.npc || '—'}</span></div>
+                                    <div class="item"><span class="label">Face Width</span><span class="value">${data.faceWidth || '—'} mm</span></div>
+                                    <div class="item"><span class="label">Face Height</span><span class="value">${data.faceHeight || '—'} mm</span></div>
+                                    <div class="item"><span class="label">Bridge Width</span><span class="value">${data.bridgeWidth || '—'} mm</span></div>
+                                    <div class="item"><span class="label">Lens Width</span><span class="value">${data.lensWidth || '—'} mm</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- ✨ RECOMMENDATION -->
+                            <div class="recommendation">
+                                <div style="font-size: 32px;">✨</div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #854d0e;">FRAME TYPE SUGGESTION</div>
+                                    <div class="rec-text">${data.recommendation || 'Wayfarer / Aviator'}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="footer">
+                                LensAI Pro · Virtual Try-On System<br>
+                                Face image attached · Full customer profile
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+            }
+
+            // ---------- 7. UI HELPERS ----------
             window.showScreen = function(id) {
                 Object.values(screens).forEach(s => s.classList.add('state-hidden'));
                 document.getElementById(`screen-${id}`).classList.remove('state-hidden');
                 if (id === 'camera') startCamera();
             };
-
             window.resetToCamera = function() {
-                if (currentStream) {
-                    currentStream.getTracks().forEach(t => t.enabled = true);
-                }
+                if (currentStream) currentStream.getTracks().forEach(t => t.enabled = true);
                 showScreen('camera');
                 captureBtn.disabled = true;
                 captureBtn.classList.remove('pulse-ring');
                 isAnalyzing = false;
             };
-
             window.openForm = () => document.getElementById('modal-form').classList.remove('state-hidden');
             window.closeForm = () => document.getElementById('modal-form').classList.add('state-hidden');
             document.getElementById('btn-open-form').onclick = window.openForm;
