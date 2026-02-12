@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>LensAI Pro · Biometric Capture</title>
     
+    <!-- Tailwind (lightweight) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Face-API with fallback CDNs in code -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Phosphor icons -->
     <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -238,12 +241,17 @@
         (function(){
             "use strict";
 
-            // 🔁 YOUR WEB APP URL
-            const API_ENDPOINT = https:"https://script.google.com/macros/s/AKfycbyWnYWBd9uC_iNclIoRiyM3JtbrizdE_b-PT-QMynUfw1UCsYpa4H2devc-uCxM4wuF/exec";
+            // 🔁 YOUR WEB APP URL – already set to your deployed endpoint
+            const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwoXhZaGB71b5xlrJ51froG7TkTR7YiU30Q10A_iI9X9ysZ37v67fvZhgKBH4UVtTAF/exec";
             const EXPORT_ENDPOINT = API_ENDPOINT + "?export=1";
-            const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models/';
+            
+            // Multiple CDNs for model fallback
+            const MODEL_URLS = [
+                'https://justadudewhohacks.github.io/face-api.js/models/',
+                'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models/'
+            ];
 
-            // DOM elements
+            // ---------- DOM elements ----------
             const screens = {
                 loading: document.getElementById('screen-loading'),
                 camera: document.getElementById('screen-camera'),
@@ -264,47 +272,90 @@
             const exportBtn = document.getElementById('export-btn');
             const cameraContainer = document.getElementById('camera-container');
 
-            // State
+            // ---------- STATE ----------
             let modelsReady = false;
-            let offlineMode = false;        // true if models fail
+            let offlineMode = false;
             let cameraActive = false;
             let isAnalyzing = false;
             let currentStream = null;
             let lastDetect = 0;
+            let modelTimeout = null;
             const analysisData = {};
 
-            // ---------- 1. LOAD MODELS WITH TIMEOUT ----------
+            // ---------- 1. LOAD MODELS WITH TIMEOUT & FALLBACK ----------
             async function loadFaceModels() {
+                // Show camera immediately (don't wait for models)
+                setTimeout(() => showScreen('camera'), 100);
+                
+                // If models take >5 seconds, force offline mode
+                modelTimeout = setTimeout(() => {
+                    console.warn('Model loading timeout – switching to offline mode');
+                    loadStatus.innerText = '⚠️ offline mode (basic capture)';
+                    loadProgress.style.width = '100%';
+                    modelsReady = false;
+                    offlineMode = true;
+                    retryBtn.classList.remove('hidden');
+                    if (cameraActive) {
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                        proximityText.innerText = 'ready';
+                    }
+                }, 5000);
+                
                 try {
                     loadStatus.innerText = '⏳ tiny face detector ...';
                     loadProgress.style.width = '15%';
-                    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+                    await attemptModelLoad('tinyFaceDetector');
                     
                     loadStatus.innerText = '⏳ face landmarks ...';
                     loadProgress.style.width = '35%';
-                    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+                    await attemptModelLoad('faceLandmark68TinyNet');
                     
                     loadStatus.innerText = '⏳ age & gender ...';
                     loadProgress.style.width = '70%';
-                    await faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL);
+                    await attemptModelLoad('ageGenderNet');
                     
+                    clearTimeout(modelTimeout);
                     loadProgress.style.width = '100%';
                     loadStatus.innerText = '✅ neural engine ready';
                     modelsReady = true;
                     offlineMode = false;
                     retryBtn.classList.add('hidden');
+                    
+                    // If camera already active, start detection
+                    if (cameraActive) {
+                        startDetectionLoop();
+                    }
                 } catch (err) {
-                    console.warn('Model load failed – switching to offline mode', err);
-                    loadStatus.innerText = '⚠️ offline mode – basic capture only';
+                    clearTimeout(modelTimeout);
+                    console.error('All model loads failed:', err);
+                    loadStatus.innerText = '⚠️ offline mode (basic capture)';
                     loadProgress.style.width = '100%';
                     modelsReady = false;
                     offlineMode = true;
                     retryBtn.classList.remove('hidden');
-                } finally {
-                    setTimeout(() => showScreen('camera'), 200);
+                    
+                    if (cameraActive) {
+                        captureBtn.disabled = false;
+                        captureBtn.classList.add('pulse-ring');
+                        proximityText.innerText = 'ready';
+                    }
                 }
             }
-            retryBtn.onclick = () => { retryBtn.classList.add('hidden'); loadFaceModels(); };
+
+            async function attemptModelLoad(netName) {
+                for (const url of MODEL_URLS) {
+                    try {
+                        const net = faceapi.nets[netName];
+                        if (!net) throw new Error(`Network ${netName} not found`);
+                        await net.loadFromUri(url);
+                        return; // success
+                    } catch (e) {
+                        console.warn(`Failed to load ${netName} from ${url}:`, e);
+                    }
+                }
+                throw new Error(`All CDNs failed for ${netName}`);
+            }
 
             // ---------- 2. START CAMERA ----------
             async function startCamera() {
@@ -325,9 +376,9 @@
                     guidanceText.innerText = offlineMode ? 'offline mode – tap to capture' : 'position face inside frame';
                     guidanceChip.className = 'mb-5 px-6 py-3 rounded-2xl glass-panel text-sm font-semibold';
                     
-                    if (!offlineMode) startDetectionLoop();
-                    else {
-                        // offline mode: enable capture immediately
+                    if (!offlineMode && modelsReady) {
+                        startDetectionLoop();
+                    } else if (offlineMode) {
                         captureBtn.disabled = false;
                         captureBtn.classList.add('pulse-ring');
                         proximityText.innerText = 'ready';
@@ -341,12 +392,7 @@
 
             // ---------- 3. DETECTION LOOP (only if models ready) ----------
             async function detectionLoop(now) {
-                if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode) {
-                    requestAnimationFrame(detectionLoop);
-                    return;
-                }
-                if (!modelsReady) {
-                    // models not ready yet – keep waiting
+                if (!cameraActive || isAnalyzing || !video.videoWidth || offlineMode || !modelsReady) {
                     requestAnimationFrame(detectionLoop);
                     return;
                 }
@@ -364,7 +410,6 @@
                     
                     if (detection) {
                         const box = detection.detection.box;
-                        // draw bounding box
                         ctx.strokeStyle = '#3b82f6';
                         ctx.lineWidth = 3;
                         ctx.shadowBlur = 12;
@@ -372,12 +417,10 @@
                         ctx.strokeRect(box.x, box.y, box.width, box.height);
                         ctx.shadowBlur = 0;
                         
-                        // draw landmarks
                         const points = detection.landmarks.positions;
                         ctx.fillStyle = '#60a5fa';
                         points.forEach(p => { ctx.fillRect(p.x-1, p.y-1, 2, 2); });
                         
-                        // distance feedback & enable button
                         const ratio = box.width / video.videoWidth;
                         let msg = '', cls = '', dist = '';
                         if (ratio < 0.22) { 
@@ -407,7 +450,7 @@
                         proximityText.innerText = '—';
                     }
                 } catch (err) {
-                    // ignore detection errors
+                    // ignore
                 }
                 requestAnimationFrame(detectionLoop);
             }
@@ -425,7 +468,7 @@
                 captureHint.innerText = '⚡ ANALYZING ...';
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                // capture image (mirrored)
+                // capture flipped image
                 const captureCanvas = document.createElement('canvas');
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
@@ -435,7 +478,7 @@
                 capCtx.drawImage(video, 0, 0);
                 const base64Image = captureCanvas.toDataURL('image/jpeg', 0.9);
                 
-                // ---------- EXTRACT METRICS ----------
+                // ---------- EXTRACT 22+ METRICS ----------
                 const now = new Date();
                 const metrics = {
                     timestamp: now.toLocaleString(),
@@ -444,7 +487,7 @@
                     imageBase64: base64Image
                 };
 
-                // If models ready, run AI analysis; else use fallback
+                // If models ready, run AI analysis
                 if (modelsReady && !offlineMode) {
                     try {
                         const detection = await faceapi.detectSingleFace(captureCanvas, new faceapi.TinyFaceDetectorOptions())
@@ -661,7 +704,7 @@
             window.closeForm = () => document.getElementById('modal-form').classList.add('state-hidden');
             document.getElementById('btn-open-form').onclick = window.openForm;
 
-            // BOOT
+            // ---------- BOOT ----------
             loadFaceModels();
         })();
     </script>
